@@ -5,7 +5,7 @@ import json
 import websockets
 
 async def hello():
-    async with websockets.connect("ws://10.131.3.106:8080") as websocket:
+    async with websockets.connect("ws://multiplayer-snake-git-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com:8080") as websocket:
         await websocket.send("1:U")
         await websocket.recv()
 
