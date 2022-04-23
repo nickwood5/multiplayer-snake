@@ -12,7 +12,7 @@ async def echo(websocket):
         await websocket.send(message)
 
 async def main():
-    async with websockets.serve(echo, "multiplayer-snake-git-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com", 8080):
+    async with websockets.serve(echo, "0.0.0.0", 8080):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())
