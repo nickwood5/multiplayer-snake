@@ -9,6 +9,7 @@ print("s")
 async def echo(websocket):
     async for message in websocket:
         print(message)
+        print(time.time())
         await websocket.send(message)
 
 async def main():

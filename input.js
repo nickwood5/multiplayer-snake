@@ -6,6 +6,8 @@ window.addEventListener('keydown', press => {
 
 })
 
+var socket = new WebSocket("ws://multiplayer-snake2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/:8080")
+
 function sendInput(press) {
     let validInput = false
     let direction = "a"
@@ -34,9 +36,9 @@ function sendInput(press) {
     if (validInput) {
         console.log("Input is " + direction)
     }
-    let socket = new WebSocket("ws://100.65.191.217:8765")
+    
 
-    socket.onopen = function(e) {
+    console.log(Date.now())
     socket.send(playerId.toString() + ":" + direction);
-    };
+    
 }
