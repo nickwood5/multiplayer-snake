@@ -6,7 +6,7 @@ window.addEventListener('keydown', press => {
 
 })
 
-var socket = new WebSocket("ws://multiplayer-snake2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/:8080")
+var socket = new WebSocket("ws://localhost:8765")
 
 function sendInput(press) {
     let validInput = false
