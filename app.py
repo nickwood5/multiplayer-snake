@@ -29,8 +29,23 @@ async def echo(websocket, client):
             movements[client] = {"x": 0, "y": 0}
             client_sockets[client] = websocket
         print("Client {} sent message {}".format(client, message))
-        moves[client].append(message)
-        print(moves)
+
+        if len(moves[client]) == 0:
+            moves[client].append(message)
+        else:
+            if message == "u":
+                if moves[client][-1] != ("u" or "d"):
+                    moves[client].append(message)
+            elif message == "d":
+                if moves[client][-1] != ("u" or "d"):
+                    moves[client].append(message)
+            elif message == "l":
+                if moves[client][-1] != ("l" or "r"):
+                    moves[client].append(message)
+            elif message == "r":
+                if moves[client][-1] != ("l" or "r"):
+                    moves[client].append(message)
+        print("MOVES ARE {}".format(moves))
         await websocket.send("AAAA")
 
 async def send(client, data):
@@ -38,7 +53,7 @@ async def send(client, data):
 
 async def test():
     while (1):
-        time.sleep(1)
+        time.sleep(0.05)
         print("Hey")
         print("List is {}".format(list))
         print(players)
@@ -52,28 +67,28 @@ async def test():
                     if movements[client]["y"] == 0:
                         movements[client]["y"] = -1
                         movements[client]["x"] = 0
-                        moves[client].pop(0)
+
                         changes[client[1:]] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "d":
                     if movements[client]["y"] == 0:
                         movements[client]["y"] = 1
                         movements[client]["x"] = 0
-                        moves[client].pop(0)
+
                         changes[client[1:]] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "l":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = -1
                         movements[client]["y"] = 0
-                        moves[client].pop(0)
+ 
                         changes[client[1:]] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "r":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = 1
                         movements[client]["y"] = 0
-                        moves[client].pop(0)
+
                         changes[client[1:]] = movements[client]
                         print(movements[client])
                 moves[client].pop(0)
