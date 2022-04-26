@@ -115,8 +115,8 @@ async def test():
 async def main():
     print("Main")
     print(time.time())
-    #async with websockets.serve(echo, "0.0.0.0", 8080):
-    async with websockets.serve(echo, "127.0.0.1", 8764):
+    async with websockets.serve(echo, "0.0.0.0", 8080):
+    #async with websockets.serve(echo, "127.0.0.1", 8764):
         await asyncio.Future()  # run forever
 
 async def head():
