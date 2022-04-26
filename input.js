@@ -17,8 +17,8 @@ await getJSON("http://multiplayer-snake-api22-nickwood5-dev.apps.sandbox-m2.ll9k
     console.log(id)
 });
 
-var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
-//var socket = new WebSocket("ws://new-snake-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
+//var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
+var socket = new WebSocket("ws://new-snake-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
 
 socket.onopen = function(e) {
     console.log("Connect to server")
