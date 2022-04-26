@@ -1,4 +1,5 @@
 import asyncio
+from struct import pack
 import websockets
 import time, threading, json
 
@@ -18,18 +19,33 @@ head_positions = {}
 movements = {}
 moves = {}
 inactivity = {}
+player_nodes = {}
+player_growth = {}
 
 client_sockets = {}
 
 async def echo(websocket, client):
     async for message in websocket:
-        if client not in connected_users:
+        if message == "c":
             connected_users.append(client)
             moves[client] = []
-            head_positions[client] = {"x": 0, "y": 0}
-            movements[client] = {"x": 0, "y": 0}
+            head_positions[client] = {"x": 10, "y": 10}
+            movements[client] = {"x": 0, "y": -1}
             client_sockets[client] = websocket
             inactivity[client] = 0
+
+            # Pick a spawn location for player
+            player_nodes[client] = []
+            player_nodes[client].append(head_positions[client])
+            player_growth[client] = 5
+            package = {"data": {}}
+            package['data']["nodes"] = player_nodes
+            package['data']["directions"] = movements
+            package['data']["growth"] = player_growth
+
+            print("Transmit {}".format(package))
+            await websocket.send(json.dumps(package))
+
         print("Client {} sent message {}".format(client, message))
 
         if len(moves[client]) == 0:
@@ -48,7 +64,6 @@ async def echo(websocket, client):
                 if moves[client][-1] != ("l" or "r"):
                     moves[client].append(message)
         print("MOVES ARE {}".format(moves))
-        await websocket.send("AAAA")
 
 async def send(client, data):
     await client.send(data)
@@ -71,33 +86,42 @@ async def test():
                         movements[client]["y"] = -1
                         movements[client]["x"] = 0
 
-                        changes[client[1:]] = movements[client]
+                        changes[client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "d":
                     if movements[client]["y"] == 0:
                         movements[client]["y"] = 1
                         movements[client]["x"] = 0
 
-                        changes[client[1:]] = movements[client]
+                        changes[client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "l":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = -1
                         movements[client]["y"] = 0
  
-                        changes[client[1:]] = movements[client]
+                        changes[client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "r":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = 1
                         movements[client]["y"] = 0
 
-                        changes[client[1:]] = movements[client]
+                        changes[client] = movements[client]
                         print(movements[client])
                 moves[client].pop(0)
                 inactivity[client] = 0
             else:
                 inactivity[client] += 1
+
+            if player_growth[client] > 0:
+                player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} ) 
+                player_growth[client] -= 1
+            else:
+                player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
+                player_nodes[client].pop()
+            
+            print(player_nodes)
 
             head_positions[client]["x"] += movements[client]["x"]
             head_positions[client]["y"] += movements[client]["y"]
@@ -111,12 +135,20 @@ async def test():
                 except:
                     print("Couldnt send")
                     pass
+        else:
+            for client in connected_users:
+                print("Sending data to {}".format(client))
+                try:
+                    await client_sockets[client].send("s")
+                except:
+                    print("Couldnt send")
+                    pass
 
 async def main():
     print("Main")
     print(time.time())
-    async with websockets.serve(echo, "0.0.0.0", 8080):
-    #async with websockets.serve(echo, "127.0.0.1", 8764):
+    #async with websockets.serve(echo, "0.0.0.0", 8080):
+    async with websockets.serve(echo, "127.0.0.1", 8764):
         await asyncio.Future()  # run forever
 
 async def head():
