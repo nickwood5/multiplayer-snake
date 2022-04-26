@@ -3,10 +3,21 @@ import websockets
 from concurrent.futures import ProcessPoolExecutor
 import time, threading
 from multiprocessing import Process
-
+from flask import Flask, jsonify
+import flask
+from flask_cors import CORS
 list = []
 connected_users = []
 players = 0
+
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route('/ping', methods=['GET', 'POST'])
+def aaaa():
+    resp = flask.make_response(jsonify({"Nick API": "ONLINE"}))
+    return resp
 
 async def echo(websocket, client):
     global players
@@ -74,8 +85,13 @@ def new():
     loop.run_until_complete(test())
     loop.close()
 
+def api():
+    app.run()
+
 
 _thread = threading.Thread(target=between_callback, args=())
 _thread2 = threading.Thread(target=new, args=())
+_thread3 = threading.Thread(target=api, args=())
 _thread.start()
 _thread2.start()
+_thread3.start()

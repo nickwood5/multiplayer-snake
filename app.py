@@ -85,8 +85,13 @@ def new():
     loop.run_until_complete(test())
     loop.close()
 
-app.run(debug=True)
+def api():
+    app.run()
+
+
 _thread = threading.Thread(target=between_callback, args=())
 _thread2 = threading.Thread(target=new, args=())
+_thread3 = threading.Thread(target=api, args=())
 _thread.start()
 _thread2.start()
+_thread3.start()
