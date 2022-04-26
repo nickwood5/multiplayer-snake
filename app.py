@@ -17,6 +17,7 @@ def get_new_id():
 head_positions = {}
 movements = {}
 moves = {}
+inactivity = {}
 
 client_sockets = {}
 
@@ -28,6 +29,7 @@ async def echo(websocket, client):
             head_positions[client] = {"x": 0, "y": 0}
             movements[client] = {"x": 0, "y": 0}
             client_sockets[client] = websocket
+            inactivity[client] = 0
         print("Client {} sent message {}".format(client, message))
 
         if len(moves[client]) == 0:
@@ -57,6 +59,7 @@ async def test():
         print("Hey")
         print("List is {}".format(list))
         print(players)
+        print(inactivity)
         print(connected_users)
         changes = {}
 
@@ -92,6 +95,9 @@ async def test():
                         changes[client[1:]] = movements[client]
                         print(movements[client])
                 moves[client].pop(0)
+                inactivity[client] = 0
+            else:
+                inactivity[client] += 1
 
             head_positions[client]["x"] += movements[client]["x"]
             head_positions[client]["y"] += movements[client]["y"]
@@ -109,8 +115,8 @@ async def test():
 async def main():
     print("Main")
     print(time.time())
-    async with websockets.serve(echo, "0.0.0.0", 8080):
-    #async with websockets.serve(echo, "127.0.0.1", 8764):
+    #async with websockets.serve(echo, "0.0.0.0", 8080):
+    async with websockets.serve(echo, "127.0.0.1", 8764):
         await asyncio.Future()  # run forever
 
 async def head():
