@@ -55,7 +55,7 @@ async def send(client, data):
 
 async def test():
     while (1):
-        time.sleep(0.05)
+        time.sleep(0.5)
         print("Hey")
         print("List is {}".format(list))
         print(players)
