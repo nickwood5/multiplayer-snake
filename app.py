@@ -3,22 +3,10 @@ import websockets
 from concurrent.futures import ProcessPoolExecutor
 import time, threading
 from multiprocessing import Process
-from flask import Flask, jsonify
-import flask
-from flask_cors import CORS
-import waitress
+
 list = []
 connected_users = []
 players = 0
-
-
-app = Flask(__name__)
-CORS(app)
-
-@app.route('/ping', methods=['GET', 'POST'])
-def aaaa():
-    resp = flask.make_response(jsonify({"Nick API": "ONLINE"}))
-    return resp
 
 async def echo(websocket, client):
     global players
@@ -38,6 +26,9 @@ async def echo(websocket, client):
             print(message)
             list.append(message)
             await websocket.send(message)
+
+async def echo2(websocket, client):
+    await websocket.send("LOCAL WEBSOCKET")
 
 async def test():
     while (1):
@@ -65,9 +56,14 @@ async def head():
 #asyncio.get_event_loop().run_forever()
 
 
+async def main2():
+    print("Main")
+    print(time.time())
+    async with websockets.serve(echo, "127.0.0.1", 8765):
+        await asyncio.Future()  # run forever
 
-async def tt():
-    print("Tt")
+async def local_websocket():
+    await main2()
 
 async def some_callback():
     await main()
@@ -86,13 +82,12 @@ def new():
     loop.run_until_complete(test())
     loop.close()
 
-def api():
-    waitress.serve(app, host="0.0.0.0", port=8081)
+
 
 
 _thread = threading.Thread(target=between_callback, args=())
 _thread2 = threading.Thread(target=new, args=())
-_thread3 = threading.Thread(target=api, args=())
+_thread3 = threading.Thread(target=local_websocket, args=())
 _thread.start()
 _thread2.start()
 _thread3.start()
