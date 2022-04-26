@@ -1,12 +1,20 @@
 
 var playerId = 1
 
+var socket = new WebSocket("ws://localhost:8765/3")
+socket.onopen = function(e) {
+    socket.send("assign_id")
+}
+
 window.addEventListener('keydown', press => {
     sendInput(press)
 
 })
 
-var socket = new WebSocket("ws://localhost:8765")
+socket.onmessage = function(message) {
+    console.log(message.data)
+};
+  
 
 function sendInput(press) {
     let validInput = false

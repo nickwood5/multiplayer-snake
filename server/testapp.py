@@ -1,13 +1,81 @@
 import asyncio
 import websockets
+from concurrent.futures import ProcessPoolExecutor
+import time, threading
+from multiprocessing import Process
 
-async def echo(websocket):
+list = []
+connected_users = []
+players = 0
+
+async def echo(websocket, client):
+    global players
+
     async for message in websocket:
-        print(message)
-        await websocket.send(message)
+        #if message == "assign_id":
+        #    players += 1
+        #    await websocket.send(players)
+        #else:
+        if message == "assign_id":
+            players += 1
+            print("Assign ID {}".format(players))
+            await websocket.send(str(players))
+        else:
+            print(client)
+            connected_users.append(client)
+            print(message)
+            list.append(message)
+            await websocket.send(message)
+
+async def test():
+    while (1):
+        time.sleep(1)
+        print("Hey")
+        print("List is {}".format(list))
+        print(players)
+        print(connected_users)
 
 async def main():
-    async with websockets.serve(echo, "0.0.0.0", 3):
+    print("Main")
+    print(time.time())
+    async with websockets.serve(echo, "127.0.0.1", 8765):
         await asyncio.Future()  # run forever
 
-asyncio.run(main())
+async def head():
+    task1 = asyncio.create_task(main())
+    #task2 = asyncio.create_task(test())
+    await task1
+
+
+#start_server = websockets.serve(echo, 'localhost', 8765)
+
+#asyncio.get_event_loop().run_until_complete(start_server)
+#asyncio.get_event_loop().run_forever()
+
+
+
+async def tt():
+    print("Tt")
+
+async def some_callback():
+    await main()
+
+def between_callback():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(main())
+    loop.close()
+
+def new():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(test())
+    loop.close()
+
+
+_thread = threading.Thread(target=between_callback, args=())
+_thread2 = threading.Thread(target=new, args=())
+_thread.start()
+_thread2.start()
