@@ -50,7 +50,7 @@ async def test():
 async def main():
     print("Main")
     print(time.time())
-    async with websockets.serve(echo, "0.0.0.0", 8081):
+    async with websockets.serve(echo, "0.0.0.0", 8080):
         await asyncio.Future()  # run forever
 
 async def head():
@@ -87,7 +87,7 @@ def new():
     loop.close()
 
 def api():
-    waitress.serve(app, host="0.0.0.0", port=8080)
+    waitress.serve(app, host="0.0.0.0", port=8081)
 
 
 _thread = threading.Thread(target=between_callback, args=())
