@@ -1,7 +1,7 @@
 
 var playerId = 1
 
-var socket = new WebSocket("ws://localhost:8765/3")
+var socket = new WebSocket("ws://test2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/3123")
 socket.onopen = function(e) {
     socket.send("assign_id")
 }
