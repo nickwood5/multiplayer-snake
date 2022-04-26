@@ -87,7 +87,7 @@ def new():
     loop.close()
 
 def api():
-    waitress.serve(app, host='0.0.0', port=8080)
+    waitress.serve(app, host='0.0.0.0', port=8080)
 
 
 _thread = threading.Thread(target=between_callback, args=())
