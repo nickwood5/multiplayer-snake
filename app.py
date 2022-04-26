@@ -1,9 +1,6 @@
 import asyncio
-from pydoc import cli
 import websockets
-from concurrent.futures import ProcessPoolExecutor
 import time, threading, json
-from multiprocessing import Process
 
 list = []
 connected_users = []
@@ -79,6 +76,7 @@ async def test():
                         moves[client].pop(0)
                         changes[client[1:]] = movements[client]
                         print(movements[client])
+                moves[client].pop(0)
 
             head_positions[client]["x"] += movements[client]["x"]
             head_positions[client]["y"] += movements[client]["y"]
