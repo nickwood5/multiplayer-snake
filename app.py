@@ -1,7 +1,8 @@
 import asyncio
+from pydoc import cli
 import websockets
 from concurrent.futures import ProcessPoolExecutor
-import time, threading
+import time, threading, json
 from multiprocessing import Process
 
 list = []
@@ -9,36 +10,35 @@ connected_users = []
 available_ids = [1, 2, 3, 4, 5, 6, 7, 8]
 players = 0
 
+def get_new_id():
+    id = 0
+    while id in connected_users:
+        id += 1
+    print("Valid id is {}".format(id))
+    return id
+
+head_positions = {}
+movements = {}
+moves = {}
+
+client_sockets = {}
+
 async def echo(websocket, client):
-    global players
-    print("Cleint is {}".format(client))
-    if client in available_ids:
-        print("Taking id {}".format(client))
-        available_ids.remove(int(client[1:]))
-
     async for message in websocket:
-        #if message == "assign_id":
-        #    players += 1
-        #    await websocket.send(players)
-        #else:
-        if message == "assign_id":
-            players += 1
-            print("Assign ID {}".format(players))
-            await websocket.send(str(players))
-        else:
-            print(client)
+        if client not in connected_users:
             connected_users.append(client)
-            print(message)
-            list.append(message)
-            await websocket.send(message)
+            moves[client] = []
+            head_positions[client] = {"x": 0, "y": 0}
+            movements[client] = {"x": 0, "y": 0}
+            client_sockets[client] = websocket
+        print("Client {} sent message {}".format(client, message))
+        moves[client].append(message)
+        print(moves)
+        await websocket.send("AAAA")
 
-async def echo2(websocket):
-    print("Local websocket")
-    print(min(available_ids))
-    user_id = min(available_ids)
-    await websocket.send(str(user_id) + "USER ID")
-    available_ids.remove(user_id)
-    print(available_ids)
+async def send(client, data):
+    await client.send(data)
+
 async def test():
     while (1):
         time.sleep(1)
@@ -46,6 +46,52 @@ async def test():
         print("List is {}".format(list))
         print(players)
         print(connected_users)
+        changes = {}
+
+        for client in connected_users:
+            if len(moves[client]) > 0:
+                print("Change client {} direction".format(client))
+                if moves[client][0] == "u":
+                    if movements[client]["y"] == 0:
+                        movements[client]["y"] = -1
+                        movements[client]["x"] = 0
+                        moves[client].pop(0)
+                        changes[client[1:]] = movements[client]
+                        print(movements[client])
+                elif moves[client][0] == "d":
+                    if movements[client]["y"] == 0:
+                        movements[client]["y"] = 1
+                        movements[client]["x"] = 0
+                        moves[client].pop(0)
+                        changes[client[1:]] = movements[client]
+                        print(movements[client])
+                elif moves[client][0] == "l":
+                    if movements[client]["x"] == 0:
+                        movements[client]["x"] = -1
+                        movements[client]["y"] = 0
+                        moves[client].pop(0)
+                        changes[client[1:]] = movements[client]
+                        print(movements[client])
+                elif moves[client][0] == "r":
+                    if movements[client]["x"] == 0:
+                        movements[client]["x"] = 1
+                        movements[client]["y"] = 0
+                        moves[client].pop(0)
+                        changes[client[1:]] = movements[client]
+                        print(movements[client])
+
+            head_positions[client]["x"] += movements[client]["x"]
+            head_positions[client]["y"] += movements[client]["y"]
+
+        print("Changes are {}".format(changes))
+        if changes:
+            for client in connected_users:
+                print("Sending data to {}".format(client))
+                try:
+                    await client_sockets[client].send(json.dumps(changes))
+                except:
+                    print("Couldnt send")
+                    pass
 
 async def main():
     print("Main")
@@ -64,23 +110,6 @@ async def head():
 
 #asyncio.get_event_loop().run_until_complete(start_server)
 #asyncio.get_event_loop().run_forever()
-
-
-async def main2():
-    print("Main2")
-    print(time.time())
-    async with websockets.serve(echo2, "multiplayer-snake-b6b85bbcf-7q9gr.cluster.local", 8081):
-        await asyncio.Future()  # run forever
-
-async def local_websocket():
-    await main2()
-
-def local_websocket_callback():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    loop.run_until_complete(local_websocket())
-    loop.close()
 
 async def some_callback():
     await main()
@@ -104,7 +133,5 @@ def new():
 
 _thread = threading.Thread(target=between_callback, args=())
 _thread2 = threading.Thread(target=new, args=())
-_thread3 = threading.Thread(target=local_websocket_callback, args=())
 _thread.start()
 _thread2.start()
-_thread3.start()

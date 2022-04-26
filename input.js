@@ -2,10 +2,22 @@
 var playerId = 1
 
 //var socket = new WebSocket("ws://test2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/8080")
-var socket = new WebSocket("ws://127.0.0.1:8764/2")
-socket.onopen = function(e) {
-    socket.send("assign_id")
+var id
+
+async function getJSON(url) {
+    const response = await fetch(url);
+    console.log(response)
+    return response.json(); // get JSON from the response 
 }
+
+await getJSON("http://multiplayer-snake-api22-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
+    console.log(response)
+    id = response['id'].toString()
+    console.log(id)
+});
+
+var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
+
 
 window.addEventListener('keydown', press => {
     sendInput(press)
@@ -48,6 +60,6 @@ function sendInput(press) {
     
 
     console.log(Date.now())
-    socket.send(playerId.toString() + ":" + direction);
+    socket.send(direction);
     
 }
