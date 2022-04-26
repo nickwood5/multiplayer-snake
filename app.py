@@ -6,6 +6,7 @@ from multiprocessing import Process
 from flask import Flask, jsonify
 import flask
 from flask_cors import CORS
+import waitress
 list = []
 connected_users = []
 players = 0
@@ -86,7 +87,7 @@ def new():
     loop.close()
 
 def api():
-    app.run()
+    waitress.serve(app, host='0.0.0', port=8080)
 
 
 _thread = threading.Thread(target=between_callback, args=())
