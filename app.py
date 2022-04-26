@@ -69,7 +69,7 @@ async def head():
 async def main2():
     print("Main2")
     print(time.time())
-    async with websockets.serve(echo2, "127.0.0.1", 8081):
+    async with websockets.serve(echo2, "multiplayer-snake-b6b85bbcf-7q9gr.cluster.local", 8081):
         await asyncio.Future()  # run forever
 
 async def local_websocket():
