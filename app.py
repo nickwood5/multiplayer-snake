@@ -1,4 +1,6 @@
 import asyncio
+from calendar import c
+from pydoc import cli
 from struct import pack
 import websockets
 import time, threading, json
@@ -8,12 +10,14 @@ connected_users = []
 available_ids = [1, 2, 3, 4, 5, 6, 7, 8]
 players = 0
 
-def get_new_id():
-    id = 0
-    while id in connected_users:
-        id += 1
-    print("Valid id is {}".format(id))
-    return id
+def remove_client(client):
+    connected_users.remove(client)
+    movements.pop(client)
+    moves.pop(client)
+    inactivity.pop(client)
+    player_nodes.pop(client)
+    player_growth.pop(client)
+    client_sockets.pop(client)
 
 head_positions = {}
 movements = {}
@@ -23,6 +27,8 @@ player_nodes = {}
 player_growth = {}
 
 client_sockets = {}
+
+fruits = [{"x": 20, "y": 20}]
 
 async def echo(websocket, client):
     async for message in websocket:
@@ -42,6 +48,7 @@ async def echo(websocket, client):
             package['data']["nodes"] = player_nodes
             package['data']["directions"] = movements
             package['data']["growth"] = player_growth
+            package['data']['fruits'] = fruits
 
             print("Transmit {}".format(package))
             await websocket.send(json.dumps(package))
@@ -70,13 +77,15 @@ async def send(client, data):
 
 async def test():
     while (1):
-        time.sleep(0.5)
+        time.sleep(1)
+        start_time = time.time()
         print("Hey")
         print("List is {}".format(list))
         print(players)
         print(inactivity)
         print(connected_users)
-        changes = {}
+        changes = {"movements": {}}
+            
 
         for client in connected_users:
             if len(moves[client]) > 0:
@@ -86,28 +95,28 @@ async def test():
                         movements[client]["y"] = -1
                         movements[client]["x"] = 0
 
-                        changes[client] = movements[client]
+                        changes["movements"][client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "d":
                     if movements[client]["y"] == 0:
                         movements[client]["y"] = 1
                         movements[client]["x"] = 0
 
-                        changes[client] = movements[client]
+                        changes["movements"][client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "l":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = -1
                         movements[client]["y"] = 0
  
-                        changes[client] = movements[client]
+                        changes["movements"][client] = movements[client]
                         print(movements[client])
                 elif moves[client][0] == "r":
                     if movements[client]["x"] == 0:
                         movements[client]["x"] = 1
                         movements[client]["y"] = 0
 
-                        changes[client] = movements[client]
+                        changes["movements"][client] = movements[client]
                         print(movements[client])
                 moves[client].pop(0)
                 inactivity[client] = 0
@@ -116,6 +125,7 @@ async def test():
 
             if player_growth[client] > 0:
                 player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} ) 
+                
                 player_growth[client] -= 1
             else:
                 player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
@@ -123,11 +133,40 @@ async def test():
             
             print(player_nodes)
 
-            head_positions[client]["x"] += movements[client]["x"]
-            head_positions[client]["y"] += movements[client]["y"]
+            #head_positions[client]["x"] += movements[client]["x"]
+            #head_positions[client]["y"] += movements[client]["y"]
+            """
+            if inactivity[client] > 100:
+                connected_users.remove(client)
+                movements.pop(client)
+                moves.pop(client)
+                inactivity.pop(client)
+                player_nodes.pop(client)
+                player_growth.pop(client)
+                client_sockets.pop(client)
+            """
+        
+        dead_clients = []
+
+        for client in connected_users:
+            # Check collisions
+            player_head = player_nodes[client][0]
+            for target_client in connected_users:
+                if client != target_client:
+                    print("Client {} nodes:".format(target_client))
+                    for node in player_nodes[target_client]:
+                        print(node)
+                    if player_head in player_nodes[target_client]:
+                        print("Client {} hit client {}".format(client, target_client))
+                        dead_clients.append(client)
+                    else:
+                        print("Client {} did not hit {}".format(client, target_client))
+
+        
+
 
         print("Changes are {}".format(changes))
-        if changes:
+        if changes["movements"]:
             for client in connected_users:
                 print("Sending data to {}".format(client))
                 try:
@@ -143,7 +182,9 @@ async def test():
                 except:
                     print("Couldnt send")
                     pass
-
+        end_time = time.time()
+        time_elapsed = end_time - start_time
+        print("Time elapsed was {}".format(time_elapsed))
 async def main():
     print("Main")
     print(time.time())
