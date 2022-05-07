@@ -11,15 +11,15 @@ async function getJSON(url) {
     return response.json(); // get JSON from the response 
 }
 
-await getJSON("http://localhost:8766/get/").then((response) => {
-//await getJSON("http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
+//await getJSON("http://localhost:8766/get/").then((response) => {
+await getJSON("http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
     //console.log(response)
     id = response['id'].toString()
     //console.log(id)
 });
 
-var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
-//var socket = new WebSocket("ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
+//var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
+var socket = new WebSocket("ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
 
 socket.onopen = function(e) {
     //console.log("Connect to server")
