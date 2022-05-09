@@ -11,15 +11,15 @@ async function getJSON(url) {
     return response.json(); // get JSON from the response 
 }
 
-//await getJSON("http://localhost:8766/get/").then((response) => {
-await getJSON("http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
+await getJSON("http://localhost:8766/get/").then((response) => {
+//await getJSON("http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
     //console.log(response)
     id = response['id'].toString()
     //console.log(id)
 });
 
-//var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
-var socket = new WebSocket("ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
+var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
+//var socket = new WebSocket("ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
 
 socket.onopen = function(e) {
     //console.log("Connect to server")
@@ -121,7 +121,7 @@ socket.onmessage = function(message) {
                     
                 }
             }
-            if (response["new_users"]) {
+            if (Object.keys(response["new_users"]).length > 0) {
                 let new_users = Object.keys(response["new_users"])
                 for (let i = 0; i < new_users.length; i++) {
                     if (new_users[i] != "/" + id.toString()) {
@@ -150,13 +150,14 @@ socket.onmessage = function(message) {
                     for (let n = 0; n < dead_client_nodes.length; n++) {
                         let row = parseInt(dead_client_nodes[n]["y"])
                         let col = parseInt(dead_client_nodes[n]["x"])
+                        
                         removeNode(row, col)
                         //console.log("Remove " + row + ", " + col)
                     }
                 }
             }
-            if (response["growth"]) {
-                //console.log("THE SNAKE GREW")
+            if (Object.keys(response["growth"]).length > 0) {
+                console.log("THE SNAKE GREW")
                 //console.log(response["growth"])
                 let growth = response["growth"]
                 let growth_keys = Object.keys(growth)
@@ -166,6 +167,29 @@ socket.onmessage = function(message) {
                     //console.log("CURRENT GROWTH IS " + Object.keys(data["data"]["growth"]))
                     data["data"]["growth"][grown_user] += change
                     //console.log(data["data"]["growth"][grown_user])
+                }
+            }
+            if (Object.keys(response["new_fruits"]).length > 0) {
+                //console.log("SOME CLIENTS DIED")
+                let new_fruits = response["new_fruits"]
+                //console.log(dead_clients)
+                for (let i = 0; i < new_fruits.length; i++) {
+                    let new_fruit = new_fruits[i]
+                    let row = new_fruit["y"]
+                    let col = new_fruit["x"]
+                    console.log("TRY TO ADD FRUIT " + row + ", " + col)
+                    setAliveNotClickable(row, col, 'fruitPiece')
+                    //delete data["data"]["directions"][dead_client]
+                }
+            }
+            if (Object.keys(response["eaten_fruits"]).length > 0) {
+                let eaten_fruits = response["eaten_fruits"]
+                for (let i = 0; i < eaten_fruits.length; i++) {
+                    let eaten_fruit = eaten_fruits[i]
+                    let row = eaten_fruit["y"]
+                    let col = eaten_fruit["x"]
+                    console.log("TRY TO REMOVE FRUIT " + row + ", " + col)
+                    removeNode(row, col)
                 }
             }
             let keys = Object.keys(data["data"]["directions"])

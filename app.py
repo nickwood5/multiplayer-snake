@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import time, threading, json
+import random
 
 list = []
 connected_users = []
@@ -28,7 +29,14 @@ player_growth = {}
 
 client_sockets = {}
 
-fruits = [{"x": 20, "y": 20}]
+def createFruit():
+    y = random.randint(1, 50)
+    x = random.randint(1, 50)
+    return {"x": x, "y": y}
+
+
+f1 = createFruit()
+fruits = [f1]
 
 async def echo(websocket, client):
     async for message in websocket:
@@ -36,7 +44,7 @@ async def echo(websocket, client):
             connected_users.append(client)
             alive_clients.append(client)
             new_users.append(client)
-            head_positions[client] = {"x": 2, "y": 3}
+            head_positions[client] = {"x": 20, "y": 20}
             moves[client] = ['u']
             movements[client] = {"x": 0, "y": -1}
             client_sockets[client] = websocket
@@ -87,7 +95,7 @@ async def test():
         #print(players)
         #print(inactivity)
         #print(connected_users)
-        changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}}
+        changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}, "new_fruits": [], "eaten_fruits": []}
 
 
         if len(new_users) > 0:
@@ -180,10 +188,15 @@ async def test():
                     player_collision = True
             if not player_collision:
                 for fruit_position in fruits:
-                    if player_head == fruit_position:
+                    if player_head["x"] == fruit_position["x"] and player_head["y"] == fruit_position["y"]:
+                        fruits.remove(fruit_position)
+                        new_fruit = createFruit()
+                        fruits.append(new_fruit)
+                        changes["new_fruits"].append(new_fruit)
                         #print("Player {} ate fruit {}".format(client, fruit_position))
                         player_growth[client] += 5
                         changes["growth"][client] = 5
+                        changes["eaten_fruits"].append({"x": fruit_position["x"], "y": fruit_position["y"]})
                         break
 
 
@@ -230,8 +243,8 @@ async def test():
 async def main():
     print("Main")
     print(time.time())
-    async with websockets.serve(echo, "0.0.0.0", 8080):
-    #async with websockets.serve(echo, "127.0.0.1", 8764):
+    #async with websockets.serve(echo, "0.0.0.0", 8080):
+    async with websockets.serve(echo, "127.0.0.1", 8764):
         await asyncio.Future()  # run forever
 
 async def head():
