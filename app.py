@@ -3,6 +3,15 @@ import websockets
 import time, threading, json
 import random
 
+local_host = False
+
+if local_host:
+    address = "127.0.0.1"
+    port = 8764
+else:
+    address = "0.0.0.0"
+    port = 8080
+
 list = []
 connected_users = []
 alive_clients = []
@@ -244,7 +253,7 @@ async def main():
     print("Main")
     print(time.time())
     #async with websockets.serve(echo, "0.0.0.0", 8080):
-    async with websockets.serve(echo, "127.0.0.1", 8764):
+    async with websockets.serve(echo, address, port):
         await asyncio.Future()  # run forever
 
 async def head():
