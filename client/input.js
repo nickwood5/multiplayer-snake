@@ -1,29 +1,55 @@
 
 var playerId = 1
-const gameBoard = document.getElementById('game-board')
 //var socket = new WebSocket("ws://test2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/8080")
 var id
 var data
+var api_url 
+var app_url
+var socket
+var previous_direction = "u"
+var gameBoard
 
-async function getJSON(url) {
-    const response = await fetch(url);
-    //console.log(response)
-    return response.json(); // get JSON from the response 
+var local_host = true
+
+if (local_host) {
+    api_url = "http://localhost:8769/get/"
+    app_url = "ws://127.0.0.1:8770/"
+} else {
+    api_url = "http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/"
+    app_url = "ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/"
 }
 
-await getJSON("http://localhost:8766/get/").then((response) => {
-//await getJSON("http://api-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/get/").then((response) => {
-    //console.log(response)
-    id = response['id'].toString()
-    //console.log(id)
-});
 
-var socket = new WebSocket("ws://127.0.0.1:8764/" + id)
-//var socket = new WebSocket("ws://app-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/" + id)
+console.log("Initializing...")
 
+var request = new XMLHttpRequest();
+request.open('GET', api_url, false);  // `false` makes the request synchronous
+request.send(null);
+
+if (request.status === 200) {
+    json_response = JSON.parse(request.responseText)
+    console.log(json_response.id)
+    id = json_response.id
+}
+gameBoard = document.getElementById('game-board')
+socket = new WebSocket(app_url + id)
 socket.onopen = function(e) {
-    //console.log("Connect to server")
+    console.log("Connect to server")
     socket.send("c")
+}
+setAliveNotClickable(1, 1, "catapillarNode")
+
+console.log(data)
+
+
+
+function doSomething() {
+    console.log("Hey")
+    console.log("Connect to server")
+    socket.send("a")
+    var popup = document.getElementById("myPopup");
+        popup.classList.toggle("hide");
+
 }
 
 
@@ -43,7 +69,7 @@ function setAliveNotClickable(row, column, tile) {
     gameBoard.appendChild(cell)
 }
 
-setAliveNotClickable(1, 1, "catapillarNode")
+
 
 function removeNode(row, column) {
     let id = row + "," + column
@@ -52,10 +78,26 @@ function removeNode(row, column) {
     cell.remove()
 }
 
-
+var currentIndex = 0
+var previousIndex = 0
+var string_index
+var string_message
+var direction
 
 socket.onmessage = function(message) {
-    if (message.data == "s") {
+    console.log(message.data)
+    if (message.data[0] == "s") {
+        console.log(data)
+        console.log(direction)
+        console.log(message.data)
+        string_message = String(message.data)
+        string_index = parseInt(string_message.substring(1))
+        //console.log(string_index)
+        previousIndex = currentIndex
+        currentIndex = string_index
+        console.log("Current index is " + currentIndex + " prev is " + previousIndex)
+
+
         //console.log("STEP")
         
         let keys = Object.keys(data["data"]["directions"])
@@ -64,7 +106,7 @@ socket.onmessage = function(message) {
             //console.log("Current first node is " + data["data"]["nodes"][keys[i]][0]["x"] + ", " + data["data"]["nodes"][keys[i]][0]["y"])
             //console.log(keys[i])
             //console.log(data["data"]["directions"][keys[i]])
-            console.log("MOVING THE SNAKE!")
+            //console.log("MOVING THE SNAKE!")
             data["data"]["nodes"][keys[i]].unshift({"x": data["data"]["nodes"][keys[i]][0]["x"] + data["data"]["directions"][keys[i]]["x"], "y": data["data"]["nodes"][keys[i]][0]["y"] + data["data"]["directions"][keys[i]]["y"]})
             if (data["data"]["growth"][keys[i]] > 0) {
                 data["data"]["growth"][keys[i]] -= 1
@@ -82,8 +124,16 @@ socket.onmessage = function(message) {
             //console.log(data["data"]["nodes"][keys[i]])
         }
     } else {
-        //console.log(message.data)
+
+        console.log("DATA is " + message.data)
         let response = JSON.parse(message.data)
+        previousIndex = currentIndex
+        currentIndex = response["index"]
+        //console.log(Object.keys(response))
+        console.log("Current index is " + currentIndex + " prev is " + previousIndex)
+        if (currentIndex != previousIndex + 1) {
+            console.log("ERROR MISALIGN")
+        }
         //console.log(response)
         //console.log(Object.keys(response))
         let keys = Object.keys(response)
@@ -113,8 +163,6 @@ socket.onmessage = function(message) {
                 let keys = Object.keys(response["movements"])
 
                 for (let i = 0; i < keys.length; i++) {
-                    //console.log("Key " + i)
-                    //console.log(keys[i])
                     data["data"]["directions"][keys[i]] = response["movements"][keys[i]]
                     //console.log(data["data"]["directions"])
 
@@ -122,12 +170,14 @@ socket.onmessage = function(message) {
                 }
             }
             if (Object.keys(response["new_users"]).length > 0) {
+                console.log("new user")
+                console.log("ID is " + id)
                 let new_users = Object.keys(response["new_users"])
                 for (let i = 0; i < new_users.length; i++) {
-                    if (new_users[i] != "/" + id.toString()) {
+                    //if (new_users[i] != "/" + id.toString()) {
                         let nodes = response["new_users"][new_users[i]]["nodes"]
                         let growth = response["new_users"][new_users[i]]["growth"]
-                        let direction = response["new_users"][new_users[i]]["direction"]
+                        direction = response["new_users"][new_users[i]]["direction"]
                         for (let n = 0; n < nodes.length; n++) {
                             let row = parseInt(nodes[n]["y"])
                             let col = parseInt(nodes[n]["x"])
@@ -136,7 +186,7 @@ socket.onmessage = function(message) {
                         data["data"]["nodes"][new_users[i]] = nodes
                         data["data"]["growth"][new_users[i]] = growth
                         data["data"]["directions"][new_users[i]] = direction
-                    }
+                    //}
                 }
             }
             if (Object.keys(response["dead_clients"]).length > 0) {
@@ -198,7 +248,7 @@ socket.onmessage = function(message) {
                 //console.log("Current first node is " + data["data"]["nodes"][keys[i]][0]["x"] + ", " + data["data"]["nodes"][keys[i]][0]["y"])
                 //console.log(keys[i])
                 //console.log(data["data"]["directions"][keys[i]])
-                console.log("MOVING THE SNAKE!")
+                //console.log("MOVING THE SNAKE!")
                 data["data"]["nodes"][keys[i]].unshift({"x": data["data"]["nodes"][keys[i]][0]["x"] + data["data"]["directions"][keys[i]]["x"], "y": data["data"]["nodes"][keys[i]][0]["y"] + data["data"]["directions"][keys[i]]["y"]})
                 if (data["data"]["growth"][keys[i]] > 0) {
                     data["data"]["growth"][keys[i]] -= 1
@@ -223,7 +273,6 @@ socket.onmessage = function(message) {
 
 function sendInput(press) {
     let validInput = false
-    let direction = "a"
     switch (press.key) {
         case "ArrowUp":
             //console.log("u")
@@ -246,6 +295,22 @@ function sendInput(press) {
             validInput = true
             break
     }
+    if (direction) {
+        if (direction == "u" && previous_direction != "u" && previous_direction != "d") {
+            socket.send(direction);
+            previous_direction = direction
+        } else if (direction == "d" && previous_direction != "u" && previous_direction != "d") {
+            socket.send(direction);
+            previous_direction = direction
+        } else if (direction == "l" && previous_direction != "l" && previous_direction != "r") {
+            socket.send(direction);
+            previous_direction = direction
+        } else if (direction == "r" && previous_direction != "l" && previous_direction != "r") {
+            socket.send(direction); 
+            previous_direction = direction
+        }
+
+    }
     //console.log(Date.now())
-    socket.send(direction);
 }
+

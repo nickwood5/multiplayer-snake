@@ -1,13 +1,15 @@
 import asyncio
+from struct import pack
 import websockets
 import time, threading, json
 import random
 
-local_host = False
+local_host = True
+index = 0
 
 if local_host:
     address = "127.0.0.1"
-    port = 8764
+    port = 8770
 else:
     address = "0.0.0.0"
     port = 8080
@@ -15,8 +17,9 @@ else:
 list = []
 connected_users = []
 alive_clients = []
-available_ids = [1, 2, 3, 4, 5, 6, 7, 8]
 players = 0
+
+
 
 new_users = []
 
@@ -50,19 +53,13 @@ fruits = [f1]
 async def echo(websocket, client):
     async for message in websocket:
         if message == "c":
+            print("New Player Connected")
             connected_users.append(client)
-            alive_clients.append(client)
-            new_users.append(client)
-            head_positions[client] = {"x": 20, "y": 20}
-            moves[client] = ['u']
-            movements[client] = {"x": 0, "y": -1}
-            client_sockets[client] = websocket
+            
             inactivity[client] = 0
-
+            client_sockets[client] = websocket
             # Pick a spawn location for player
-            player_nodes[client] = []
-            player_nodes[client].append(head_positions[client])
-            player_growth[client] = 5
+            
             package = {"data": {}}
             package['data']["nodes"] = player_nodes
             package['data']["directions"] = movements
@@ -70,25 +67,52 @@ async def echo(websocket, client):
             package['data']['fruits'] = fruits
 
             #print("Transmit {}".format(package))
+            print(package)
             await websocket.send(json.dumps(package))
+        elif message == "a" and client in connected_users:
+            alive_clients.append(client)
+            new_users.append(client)
+
+            head_positions[client] = {"x": 20, "y": 20}
+
+            player_nodes[client] = []
+            player_nodes[client].append(head_positions[client])
+            player_growth[client] = 5
+            
+            moves[client] = ['u']
+            movements[client] = {"x": 0, "y": -1}
+            
         else:
             
-            #print("Client {} sent message {}".format(client, message))
+            print("Client {} sent message {}".format(client, message))
 
             if len(moves[client]) == 0:
                 moves[client].append(message)
             else:
+                print(moves[client])
                 if message == "u":
-                    if moves[client][-1] != ("u" or "d"):
+                    if len(moves[client]) > 0:
+                        if moves[client][-1] != "u" and  moves[client][-1] != "d":
+                            moves[client].append(message)
+                    else:
                         moves[client].append(message)
                 elif message == "d":
-                    if moves[client][-1] != ("u" or "d"):
+                    if len(moves[client]) > 0:
+                        if moves[client][-1] != "u" and  moves[client][-1] != "d":
+                            moves[client].append(message)
+                    else:
                         moves[client].append(message)
                 elif message == "l":
-                    if moves[client][-1] != ("l" or "r"):
+                    if len(moves[client]) > 0:
+                        if moves[client][-1] != "l" and  moves[client][-1] != "r":
+                            moves[client].append(message)
+                    else:
                         moves[client].append(message)
                 elif message == "r":
-                    if moves[client][-1] != ("l" or "r"):
+                    if len(moves[client]) > 0:
+                        if moves[client][-1] != "l" and  moves[client][-1] != "r":
+                            moves[client].append(message)
+                    else:
                         moves[client].append(message)
             #print("MOVES ARE {}".format(moves))
 
@@ -96,14 +120,10 @@ async def send(client, data):
     await client.send(data)
 
 async def test():
+    global index
     while (1):
-        time.sleep(0.1)
+        time.sleep(0.2)
         start_time = time.time()
-        #print("Hey")
-        #print("List is {}".format(list))
-        #print(players)
-        #print(inactivity)
-        #print(connected_users)
         changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}, "new_fruits": [], "eaten_fruits": []}
 
 
@@ -119,11 +139,13 @@ async def test():
             
 
         for client in connected_users:
-            print("CHECKING CLIENT {} CONNECTION".format(client))
+            #print("CHECKING CLIENT {} CONNECTION".format(client))
             if client in alive_clients:
                 print({"CLIENT {} LIVES".format(client)})
                 if len(moves[client]) > 0:
-                    #print("Change client {} direction".format(client))
+                    print("Change client {} direction".format(client))
+                    print(moves[client])
+                    print("CLIENT MOVEMENTS IS NOW {}".format(movements[client]))
                     if moves[client][0] == "u":
                         if movements[client]["y"] == 0:
                             movements[client]["y"] = -1
@@ -161,8 +183,9 @@ async def test():
                     print("GROWING SNAKE!!!!")
                     player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} ) 
                     player_growth[client] -= 1
+                    
                 else:
-                    print("GROWING SNAKE!!!")
+                    print("MOVING SNAKE")
                     player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
                     player_nodes[client].pop()
                 
@@ -217,6 +240,8 @@ async def test():
 
         #print("Changes are {}".format(changes))
         if changes["movements"] or changes["new_users"] or changes["dead_clients"] or changes["growth"]:
+            index += 1
+            changes["index"] = index
             print("SENDING AN UPDATE PACKET: {}".format(changes))
             for client in connected_users:
                 #print("Sending data to {}!!".format(client))
@@ -227,13 +252,15 @@ async def test():
                     pass
         else:
             print("SENDING A STEP MESSAGE")
+            index += 1
+            #print("Index is {}".format(index))
             for client in connected_users:
-                print("Sending data to {}".format(client))
+                #print("Sending data to {}".format(client))
                 try:
-                    await client_sockets[client].send("s")
+                    await client_sockets[client].send("s" + str(index))
                 except:
-                    print("Couldnt send")
                     pass
+
         end_time = time.time()
         time_elapsed = end_time - start_time
 

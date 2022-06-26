@@ -13,14 +13,14 @@
         justify-content: center;
         align-items: center;
         margin: 0;
-        background-color: black;
+        background-color: rgb(255, 247, 247);
         }
         :root {
             --numRows: 50;
             --numCols: 50;
         }
         #game-board {
-            background-color: rgb(29, 29, 29);
+            background-color: rgb(51, 51, 51);
             width: 80vmin;
             height: 80vmin;
             margin-top: 10vmin;
@@ -59,12 +59,93 @@
             background-color: hsl(200, 100%, 50%);
             border: .25vmin solid rgb(236, 18, 18);
         }
-    </style>
-    <script src="input.js" defer type="module"></script>
+        /* Popup container - can be anything you want */
+        .popup {
+            position: absolute;
+            display: block;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            margin: auto;
+            left: 40%;
+        }
 
-<body style="background-color:black">
+        /* The actual popup */
+        .popup .popuptext {
+            visibility: visible;
+            width: 400px;
+            height: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin: auto;
+        }
+
+
+
+        /* Toggle this class - hide and show the popup */
+        .popup .show {
+            visibility: visible;
+            -webkit-animation: fadeIn 1s;
+            animation: fadeIn 1s;
+        }
+
+        .popup .hide {
+            -webkit-animation: fadeIn 1s;
+            animation: fadeIn 1s;
+            visibility: hidden;
+        }
+
+        /* Add animation (fade in the popup) */
+            @-webkit-keyframes fadeIn {
+            from {opacity: 0;} 
+            to {opacity: 1;}
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity:1 ;}
+        }
+    </style>
+
+    
+
+    
+    <div class="popup">
+        <span class="popuptext" id="myPopup">Enter name
+            <input type="text" name="myInput" size="30" required>
+            <input type="color" name="myCheckbox" value="#ff0000">
+            <button type="button" name="myButton" onclick="doSomething()">
+                GAMING
+            </button>
+        </span>
+    </div>
+
+<body style="background-color:rgb(194, 194, 194)">
     <div id="game-board">
         <div chile="snakeNode" </div>
     </div>
 </body>
+
+<script src="./input.js"> </script>
+    
+        
+
+<script src="./script.js" type="modu"></script>
+
+<script>
+    // When the user clicks on div, open the popup
+    function myFunction() {
+        var popup = document.getElementById("myPopup");
+        popup.classList.toggle("hide");
+    }
+</script>
 </html>
