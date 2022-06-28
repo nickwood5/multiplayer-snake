@@ -39,6 +39,7 @@ inactivity = {}
 player_nodes = {}
 player_growth = {}
 player_colours = {}
+player_speeds = {}
 
 client_sockets = {}
 
@@ -51,82 +52,91 @@ def createFruit():
 f1 = createFruit()
 fruits = [f1]
 
+for a in range (0, 20):
+    fruit = createFruit()
+    fruits.append(createFruit())
+
+
+async def connection_handler(websocket, client):
+    connected_users.append(client)         
+    inactivity[client] = 0
+    client_sockets[client] = websocket
+    
+    package = {"data": {}}
+    package['data']["nodes"] = player_nodes
+    package['data']["directions"] = movements
+    package['data']["growth"] = player_growth
+    package['data']['fruits'] = fruits
+    package['data']['colours'] = player_colours
+
+    await websocket.send(json.dumps(package))
+
+async def spawn_handler(message, client):
+    player_colour = message["colour"]
+    alive_clients.append(client)
+    new_users.append(client)
+
+    head_positions[client] = {"x": 20, "y": 20}
+
+    player_nodes[client] = []
+    player_nodes[client].append(head_positions[client])
+    player_growth[client] = 5
+    player_colours[client] = player_colour
+    
+    moves[client] = ['u']
+    movements[client] = {"x": 0, "y": -1}
+
+async def move_handler(message, client):
+    new_direction = message["direction"]
+            
+    #print("Client {} sent message {}".format(client, message))
+    #print(message["type"])
+
+    if len(moves[client]) == 0:
+        moves[client].append(new_direction)
+    else:
+        #print(moves[client])
+        if new_direction == "u":
+            if len(moves[client]) > 0:
+                if moves[client][-1] != "u" and  moves[client][-1] != "d":
+                    moves[client].append(new_direction)
+            else:
+                moves[client].append(new_direction)
+        elif new_direction == "d":
+            if len(moves[client]) > 0:
+                if moves[client][-1] != "u" and  moves[client][-1] != "d":
+                    moves[client].append(new_direction)
+            else:
+                moves[client].append(new_direction)
+        elif new_direction == "l":
+            if len(moves[client]) > 0:
+                if moves[client][-1] != "l" and  moves[client][-1] != "r":
+                    moves[client].append(new_direction)
+            else:
+                moves[client].append(new_direction)
+        elif new_direction == "r":
+            if len(moves[client]) > 0:
+                if moves[client][-1] != "l" and  moves[client][-1] != "r":
+                    moves[client].append(new_direction)
+            else:
+                moves[client].append(new_direction)
+    #print("MOVES ARE {}".format(moves))
+
+
 async def input_handler(websocket, client):
     async for message in websocket:
         message = json.loads(message)
         print("Received message {} from {}".format(message, client))
         input_type = message["type"]
+
         if input_type == "connect":
-            #print("New Player Connected")
-            connected_users.append(client)
+            await connection_handler(websocket, client)
             
-            inactivity[client] = 0
-            client_sockets[client] = websocket
-            # Pick a spawn location for player
-            
-            package = {"data": {}}
-            package['data']["nodes"] = player_nodes
-            package['data']["directions"] = movements
-            package['data']["growth"] = player_growth
-            package['data']['fruits'] = fruits
-            package['data']['colours'] = player_colours
-
-            #print("Transmit {}".format(package))
-            #print(package)
-            await websocket.send(json.dumps(package))
         elif input_type == "spawn" and client in connected_users:
-            #print(message)
-            player_colour = message["colour"]
-            alive_clients.append(client)
-            new_users.append(client)
-
-            head_positions[client] = {"x": 20, "y": 20}
-
-            player_nodes[client] = []
-            player_nodes[client].append(head_positions[client])
-            player_growth[client] = 5
-            player_colours[client] = player_colour
-            
-            moves[client] = ['u']
-            movements[client] = {"x": 0, "y": -1}
-
-            #print("Player nodes is now {}".format(player_nodes[client]))
+            await spawn_handler(message, client)
             
         elif input_type == "move":
-            new_direction = message["direction"]
-            
-            #print("Client {} sent message {}".format(client, message))
-            #print(message["type"])
-
-            if len(moves[client]) == 0:
-                moves[client].append(new_direction)
-            else:
-                #print(moves[client])
-                if new_direction == "u":
-                    if len(moves[client]) > 0:
-                        if moves[client][-1] != "u" and  moves[client][-1] != "d":
-                            moves[client].append(new_direction)
-                    else:
-                        moves[client].append(new_direction)
-                elif new_direction == "d":
-                    if len(moves[client]) > 0:
-                        if moves[client][-1] != "u" and  moves[client][-1] != "d":
-                            moves[client].append(new_direction)
-                    else:
-                        moves[client].append(new_direction)
-                elif new_direction == "l":
-                    if len(moves[client]) > 0:
-                        if moves[client][-1] != "l" and  moves[client][-1] != "r":
-                            moves[client].append(new_direction)
-                    else:
-                        moves[client].append(new_direction)
-                elif new_direction == "r":
-                    if len(moves[client]) > 0:
-                        if moves[client][-1] != "l" and  moves[client][-1] != "r":
-                            moves[client].append(new_direction)
-                    else:
-                        moves[client].append(new_direction)
-            #print("MOVES ARE {}".format(moves))
+            await move_handler(message, client)
 
 async def send(client, data):
     await client.send(data)
@@ -134,11 +144,10 @@ async def send(client, data):
 async def test():
     global index
     while (1):
-        time.sleep(0.05)
+        time.sleep(0.1)
         print("{} Access game runner, connected are {}, alive are {}, new are {}".format(round(time.time(), 0), connected_users, alive_clients, new_users))
         start_time = time.time()
         changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}, "new_fruits": [], "eaten_fruits": []}
-
 
         if len(new_users) > 0:
             #print(new_users)
@@ -148,9 +157,6 @@ async def test():
                 changes["new_users"][new_user]["direction"] = movements[new_user]
                 changes["new_users"][new_user]["growth"] = player_growth[new_user]
                 changes["new_users"][new_user]["colours"] = player_colours[new_user]
-
-            
-            
 
         for client in connected_users:
             #print("CHECKING CLIENT {} CONNECTION".format(client))
