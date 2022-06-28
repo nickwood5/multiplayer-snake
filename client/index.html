@@ -36,6 +36,11 @@
             border: .25vmin solid black;
         }
 
+        .colourNode {
+            background-color: var(--node-color, red);
+            border: .25vmin solid black;
+        }
+
         .catapillarHead {
             /* background-color: hsl(200, 100%, 50%); --> */
             background-image:url("https://cdn.discordapp.com/attachments/939573168409022494/945879351537336350/Untitled_design_21.png");
@@ -122,7 +127,7 @@
     <div class="popup">
         <span class="popuptext" id="myPopup">Enter name
             <input type="text" name="myInput" size="30" required>
-            <input type="color" name="myCheckbox" value="#ff0000">
+            <input type="color" name="myCheckbox" value="#ff0000" id="colorPicker">
             <button type="button" name="myButton" onclick="doSomething()">
                 GAMING
             </button>
@@ -135,7 +140,7 @@
     </div>
 </body>
 
-<script src="./input.js"> </script>
+<script src="./input.js" defer> </script>
     
         
 

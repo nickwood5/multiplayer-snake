@@ -28,27 +28,39 @@ request.send(null);
 
 if (request.status === 200) {
     json_response = JSON.parse(request.responseText)
-    console.log(json_response.id)
+    //console.log(json_response.id)
     id = json_response.id
 }
 gameBoard = document.getElementById('game-board')
 socket = new WebSocket(app_url + id)
 socket.onopen = function(e) {
-    console.log("Connect to server")
-    socket.send("c")
+    //console.log("Connect to server")
+    let connect_json = {"type": "connect"}
+    let connect_packet = JSON.stringify(connect_json)
+    socket.send(connect_packet)
 }
-setAliveNotClickable(1, 1, "catapillarNode")
+setAliveNotClickable(1, 1, "catapillarNode", "#32a852")
 
-console.log(data)
+setAliveNotClickable(2, 2, "colourNode", "#32a852")
+
+//console.log(data)
 
 
 
 function doSomething() {
-    console.log("Hey")
-    console.log("Connect to server")
-    socket.send("a")
+    //console.log("Hey")
+    //console.log("Connect to server")
+    
     var popup = document.getElementById("myPopup");
-        popup.classList.toggle("hide");
+    var colorPicker = document.getElementById("colorPicker")
+    var playerColor = colorPicker.value
+
+    let spawn_json = {"type": "spawn", "colour": playerColor}
+    let spawn_packet = JSON.stringify(spawn_json)
+
+    socket.send(spawn_packet)
+    //console.log(playerColor)
+    popup.classList.toggle("hide");
 
 }
 
@@ -58,11 +70,13 @@ window.addEventListener('keydown', press => {
 
 })
 
-function setAliveNotClickable(row, column, tile) {
+function setAliveNotClickable(row, column, tile, colour) {
+    //console.log("color is " + colour)
     //console.log("Create node at row " + row + ", col " + column)
     const cell = document.createElement('div')
     cell.style.gridRowStart = row
     cell.style.gridColumnStart = column
+    cell.style.setProperty("--node-color", colour)
     cell.id = row + "," + column
     //console.log("CREATE NODE " + cell.id)
     cell.classList.add(tile)
@@ -85,28 +99,24 @@ var string_message
 var direction
 
 socket.onmessage = function(message) {
-    console.log(message.data)
-    if (message.data[0] == "s") {
-        console.log(data)
-        console.log(direction)
-        console.log(message.data)
-        string_message = String(message.data)
-        string_index = parseInt(string_message.substring(1))
-        //console.log(string_index)
+    console.log(Math.round((new Date()).getTime() / 1000) + " " + message.data)
+    response = JSON.parse(message.data)
+    if (response["user_steps"] != null) {
+
         previousIndex = currentIndex
         currentIndex = string_index
-        console.log("Current index is " + currentIndex + " prev is " + previousIndex)
+        //console.log("Current index is " + currentIndex + " prev is " + previousIndex)
 
 
         //console.log("STEP")
         
-        let keys = Object.keys(data["data"]["directions"])
+        let keys = response["user_steps"]
         //console.log(keys)
         for (let i = 0; i < keys.length; i++) {
             //console.log("Current first node is " + data["data"]["nodes"][keys[i]][0]["x"] + ", " + data["data"]["nodes"][keys[i]][0]["y"])
             //console.log(keys[i])
             //console.log(data["data"]["directions"][keys[i]])
-            //console.log("MOVING THE SNAKE!")
+            //console.log("MOVING THE SNAKE BECAUSE OF A STEP!")
             data["data"]["nodes"][keys[i]].unshift({"x": data["data"]["nodes"][keys[i]][0]["x"] + data["data"]["directions"][keys[i]]["x"], "y": data["data"]["nodes"][keys[i]][0]["y"] + data["data"]["directions"][keys[i]]["y"]})
             if (data["data"]["growth"][keys[i]] > 0) {
                 data["data"]["growth"][keys[i]] -= 1
@@ -120,20 +130,18 @@ socket.onmessage = function(message) {
             //console.log(parseInt(data["data"]["nodes"][keys[i]][0]["x"]))
             let row = parseInt(data["data"]["nodes"][keys[i]][0]["y"])
             let col = parseInt(data["data"]["nodes"][keys[i]][0]["x"])
-            setAliveNotClickable(row, col, 'catapillarNode')
+            console.log(Math.round((new Date()).getTime() / 1000) + " Head at " + row + ", " + col + " due to packet " + response["index"])
+            setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][keys[i]])
             //console.log(data["data"]["nodes"][keys[i]])
         }
     } else {
 
-        console.log("DATA is " + message.data)
+        //console.log("DATA is " + message.data)
         let response = JSON.parse(message.data)
-        previousIndex = currentIndex
-        currentIndex = response["index"]
+
         //console.log(Object.keys(response))
-        console.log("Current index is " + currentIndex + " prev is " + previousIndex)
-        if (currentIndex != previousIndex + 1) {
-            console.log("ERROR MISALIGN")
-        }
+        //console.log("Current index is " + currentIndex + " prev is " + previousIndex)
+
         //console.log(response)
         //console.log(Object.keys(response))
         let keys = Object.keys(response)
@@ -148,7 +156,7 @@ socket.onmessage = function(message) {
                 for (let j = 0; j < nodes.length; j++) {
                     let row = parseInt(nodes[j]["y"])
                     let col = parseInt(nodes[j]["x"])
-                    setAliveNotClickable(row, col, 'catapillarNode')
+                    setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][players[i]])
                 }
             }
             let fruits = data["data"]["fruits"]
@@ -163,29 +171,29 @@ socket.onmessage = function(message) {
                 let keys = Object.keys(response["movements"])
 
                 for (let i = 0; i < keys.length; i++) {
-                    data["data"]["directions"][keys[i]] = response["movements"][keys[i]]
-                    //console.log(data["data"]["directions"])
-
-                    
+                    data["data"]["directions"][keys[i]] = response["movements"][keys[i]]     
                 }
             }
             if (Object.keys(response["new_users"]).length > 0) {
-                console.log("new user")
-                console.log("ID is " + id)
+                //console.log("new user")
+                //console.log("ID is " + id)
                 let new_users = Object.keys(response["new_users"])
                 for (let i = 0; i < new_users.length; i++) {
                     //if (new_users[i] != "/" + id.toString()) {
                         let nodes = response["new_users"][new_users[i]]["nodes"]
                         let growth = response["new_users"][new_users[i]]["growth"]
+                        let colour = response["new_users"][new_users[i]]["colours"]
+                        //console.log("COLOUR IS " + colour)
                         direction = response["new_users"][new_users[i]]["direction"]
                         for (let n = 0; n < nodes.length; n++) {
                             let row = parseInt(nodes[n]["y"])
                             let col = parseInt(nodes[n]["x"])
-                            setAliveNotClickable(row, col, 'catapillarNode')
+                            setAliveNotClickable(row, col, 'colourNode', colour)
                         }
                         data["data"]["nodes"][new_users[i]] = nodes
                         data["data"]["growth"][new_users[i]] = growth
                         data["data"]["directions"][new_users[i]] = direction
+                        data["data"]["colours"][new_users[i]] = colour
                     //}
                 }
             }
@@ -207,7 +215,7 @@ socket.onmessage = function(message) {
                 }
             }
             if (Object.keys(response["growth"]).length > 0) {
-                console.log("THE SNAKE GREW")
+                //console.log("THE SNAKE GREW")
                 //console.log(response["growth"])
                 let growth = response["growth"]
                 let growth_keys = Object.keys(growth)
@@ -227,7 +235,7 @@ socket.onmessage = function(message) {
                     let new_fruit = new_fruits[i]
                     let row = new_fruit["y"]
                     let col = new_fruit["x"]
-                    console.log("TRY TO ADD FRUIT " + row + ", " + col)
+                    //console.log("TRY TO ADD FRUIT " + row + ", " + col)
                     setAliveNotClickable(row, col, 'fruitPiece')
                     //delete data["data"]["directions"][dead_client]
                 }
@@ -238,32 +246,35 @@ socket.onmessage = function(message) {
                     let eaten_fruit = eaten_fruits[i]
                     let row = eaten_fruit["y"]
                     let col = eaten_fruit["x"]
-                    console.log("TRY TO REMOVE FRUIT " + row + ", " + col)
+                    //console.log("TRY TO REMOVE FRUIT " + row + ", " + col)
                     removeNode(row, col)
                 }
             }
             let keys = Object.keys(data["data"]["directions"])
             //console.log(keys)
             for (let i = 0; i < keys.length; i++) {
-                //console.log("Current first node is " + data["data"]["nodes"][keys[i]][0]["x"] + ", " + data["data"]["nodes"][keys[i]][0]["y"])
-                //console.log(keys[i])
-                //console.log(data["data"]["directions"][keys[i]])
-                //console.log("MOVING THE SNAKE!")
-                data["data"]["nodes"][keys[i]].unshift({"x": data["data"]["nodes"][keys[i]][0]["x"] + data["data"]["directions"][keys[i]]["x"], "y": data["data"]["nodes"][keys[i]][0]["y"] + data["data"]["directions"][keys[i]]["y"]})
-                if (data["data"]["growth"][keys[i]] > 0) {
-                    data["data"]["growth"][keys[i]] -= 1
-                } else {
-                    let removedNode = data["data"]["nodes"][keys[i]].pop()
-                    let row = parseInt(removedNode["y"])
-                    let col = parseInt(removedNode["x"])
-                    removeNode(row, col)
-                    //console.log("Remove node row" + row + ", col " + col)
+                if (response["new_users"] != null) {
+                    //console.log(response["new_users"])
+                    if (Object.keys(response["new_users"]).includes(keys[i]) == false) {
+                        //console.log("MOVING THE SNAKE BECAUSE OF DIRECTION CHANGE!")
+                        data["data"]["nodes"][keys[i]].unshift({"x": data["data"]["nodes"][keys[i]][0]["x"] + data["data"]["directions"][keys[i]]["x"], "y": data["data"]["nodes"][keys[i]][0]["y"] + data["data"]["directions"][keys[i]]["y"]})
+                        if (data["data"]["growth"][keys[i]] > 0) {
+                            data["data"]["growth"][keys[i]] -= 1
+                        } else {
+                            let removedNode = data["data"]["nodes"][keys[i]].pop()
+                            let row = parseInt(removedNode["y"])
+                            let col = parseInt(removedNode["x"])
+                            removeNode(row, col)
+                            //console.log("Remove node row" + row + ", col " + col)
+                        }
+                        //console.log(parseInt(data["data"]["nodes"][keys[i]][0]["x"]))
+                        let row = parseInt(data["data"]["nodes"][keys[i]][0]["y"])
+                        let col = parseInt(data["data"]["nodes"][keys[i]][0]["x"])
+                        console.log(Math.round((new Date()).getTime() / 1000) + " Head at " + row + ", " + col + " due to packet " + response["index"])
+                        setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][keys[i]])
+                        //console.log(data["data"]["nodes"][keys[i]]
+                    }
                 }
-                //console.log(parseInt(data["data"]["nodes"][keys[i]][0]["x"]))
-                let row = parseInt(data["data"]["nodes"][keys[i]][0]["y"])
-                let col = parseInt(data["data"]["nodes"][keys[i]][0]["x"])
-                setAliveNotClickable(row, col, 'catapillarNode')
-                //console.log(data["data"]["nodes"][keys[i]])
             }
         }
     }
@@ -297,16 +308,28 @@ function sendInput(press) {
     }
     if (direction) {
         if (direction == "u" && previous_direction != "u" && previous_direction != "d") {
-            socket.send(direction);
+            move_json = {"type": "move", "direction": direction}
+            move_packet = JSON.stringify(move_json)
+            console.log("Sending move packet " + move_packet)
+            socket.send(move_packet);
             previous_direction = direction
         } else if (direction == "d" && previous_direction != "u" && previous_direction != "d") {
-            socket.send(direction);
+            move_json = {"type": "move", "direction": direction}
+            move_packet = JSON.stringify(move_json)
+            console.log("Sending move packet " + move_packet)
+            socket.send(move_packet);
             previous_direction = direction
         } else if (direction == "l" && previous_direction != "l" && previous_direction != "r") {
-            socket.send(direction);
+            move_json = {"type": "move", "direction": direction}
+            move_packet = JSON.stringify(move_json)
+            console.log("Sending move packet " + move_packet)
+            socket.send(move_packet);
             previous_direction = direction
         } else if (direction == "r" && previous_direction != "l" && previous_direction != "r") {
-            socket.send(direction); 
+            move_json = {"type": "move", "direction": direction}
+            move_packet = JSON.stringify(move_json)
+            console.log("Sending move packet " + move_packet)
+            socket.send(move_packet);
             previous_direction = direction
         }
 
