@@ -7,6 +7,9 @@ import random
 local_host = True
 index = 0
 
+step_length = 2
+step = 1
+
 if local_host:
     address = "127.0.0.1"
     port = 8770
@@ -82,6 +85,8 @@ async def spawn_handler(message, client):
     player_nodes[client].append(head_positions[client])
     player_growth[client] = 5
     player_colours[client] = player_colour
+    player_speeds[client] = 2
+    print(player_speeds[client])
     
     moves[client] = ['u']
     movements[client] = {"x": 0, "y": -1}
@@ -137,16 +142,75 @@ async def input_handler(websocket, client):
             
         elif input_type == "move":
             await move_handler(message, client)
+        
+        elif input_type == "increase_speed":
+            player_speeds[client] = 1
+
+        elif input_type == "decrease_speed":
+            player_speeds[client] = 2
 
 async def send(client, data):
     await client.send(data)
 
+def update_moves(client, changes):
+    if moves[client][0] == "u":
+        if movements[client]["y"] == 0:
+            movements[client]["y"] = -1
+            movements[client]["x"] = 0
+
+            changes["movements"][client] = movements[client]
+            #print(movements[client])
+    elif moves[client][0] == "d":
+        if movements[client]["y"] == 0:
+            movements[client]["y"] = 1
+            movements[client]["x"] = 0
+
+            changes["movements"][client] = movements[client]
+            #print(movements[client])
+    elif moves[client][0] == "l":
+        if movements[client]["x"] == 0:
+            movements[client]["x"] = -1
+            movements[client]["y"] = 0
+
+            changes["movements"][client] = movements[client]
+            #print(movements[client])
+    elif moves[client][0] == "r":
+        if movements[client]["x"] == 0:
+            movements[client]["x"] = 1
+            movements[client]["y"] = 0
+
+            changes["movements"][client] = movements[client]
+            #print(movements[client])
+    moves[client].pop(0)
+    inactivity[client] = 0
+
+def move_snake(client, changes, user_steps):
+    user_steps.append(client)
+    if len(moves[client]) > 0:
+        update_moves(client, changes)
+    else:
+        inactivity[client] += 1
+
+    if player_growth[client] > 0:
+        #print("GROWING SNAKE!!!!")
+        player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} ) 
+        player_growth[client] -= 1
+        
+    else:
+        #print("MOVING SNAKE")
+        player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
+        player_nodes[client].pop()
+    print("{} Head at {}, {}".format(round(time.time(), 0), player_nodes[client][0]["y"], player_nodes[client][0]["x"]))
+    #print(player_nodes)
+    return user_steps
+
 async def test():
-    global index
+    global index, step
     while (1):
-        time.sleep(0.1)
+        time.sleep(0.05)
+        #print("STEP IS {}".format(step))
         print("{} Access game runner, connected are {}, alive are {}, new are {}".format(round(time.time(), 0), connected_users, alive_clients, new_users))
-        start_time = time.time()
+        #start_time = time.time()
         changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}, "new_fruits": [], "eaten_fruits": []}
 
         if len(new_users) > 0:
@@ -158,58 +222,17 @@ async def test():
                 changes["new_users"][new_user]["growth"] = player_growth[new_user]
                 changes["new_users"][new_user]["colours"] = player_colours[new_user]
 
+        user_steps = []
+
         for client in connected_users:
-            #print("CHECKING CLIENT {} CONNECTION".format(client))
             if client in alive_clients and client not in new_users:
                 #print({"CLIENT {} LIVES".format(client)})
-                if len(moves[client]) > 0:
-                    #print("Change client {} direction".format(client))
-                    #print(moves[client])
-                    #print("CLIENT MOVEMENTS IS NOW {}".format(movements[client]))
-                    if moves[client][0] == "u":
-                        if movements[client]["y"] == 0:
-                            movements[client]["y"] = -1
-                            movements[client]["x"] = 0
+                if player_speeds[client] == 2:
+                    if step == 2:
+                        user_steps = move_snake(client, changes, user_steps)
+                elif player_speeds[client] == 1:
+                    user_steps = move_snake(client, changes, user_steps)
 
-                            changes["movements"][client] = movements[client]
-                            #print(movements[client])
-                    elif moves[client][0] == "d":
-                        if movements[client]["y"] == 0:
-                            movements[client]["y"] = 1
-                            movements[client]["x"] = 0
-
-                            changes["movements"][client] = movements[client]
-                            #print(movements[client])
-                    elif moves[client][0] == "l":
-                        if movements[client]["x"] == 0:
-                            movements[client]["x"] = -1
-                            movements[client]["y"] = 0
-    
-                            changes["movements"][client] = movements[client]
-                            #print(movements[client])
-                    elif moves[client][0] == "r":
-                        if movements[client]["x"] == 0:
-                            movements[client]["x"] = 1
-                            movements[client]["y"] = 0
-
-                            changes["movements"][client] = movements[client]
-                            #print(movements[client])
-                    moves[client].pop(0)
-                    inactivity[client] = 0
-                else:
-                    inactivity[client] += 1
-
-                if player_growth[client] > 0:
-                    #print("GROWING SNAKE!!!!")
-                    player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} ) 
-                    player_growth[client] -= 1
-                    
-                else:
-                    #print("MOVING SNAKE")
-                    player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
-                    player_nodes[client].pop()
-                print("{} Head at {}, {}".format(round(time.time(), 0), player_nodes[client][0]["y"], player_nodes[client][0]["x"]))
-                #print(player_nodes)
             else:
                 inactivity[client] += 1
           
@@ -217,6 +240,8 @@ async def test():
             #    dead_clients.append(client)
             #    connected_users.remove(client)       
             #    #alive_clients.remove(client)
+        
+        changes["user_steps"] = user_steps
 
         new_users.clear()
         
@@ -257,12 +282,14 @@ async def test():
 
         if dead_clients:
             changes["dead_clients"] = dead_clients
+            for client in dead_clients:
+                if client in user_steps:
+                    user_steps.remove(client)
             
         
 
         #print("Changes are {}".format(changes))
-        if changes["movements"] or changes["new_users"] or changes["dead_clients"] or changes["growth"]:
-            index += 1
+        if changes["movements"] or changes["new_users"] or changes["dead_clients"] or changes["growth"] or changes["user_steps"]:
             changes["index"] = index
             #print("SENDING AN UPDATE PACKET: {}".format(changes))
             for client in connected_users:
@@ -271,19 +298,6 @@ async def test():
                     await client_sockets[client].send(json.dumps(changes))
                 except:
                     #print("Couldnt send")
-                    pass
-        else:
-            #print("SENDING A STEP MESSAGE")
-            index += 1
-            #print("Index is {}".format(index))
-            user_steps = alive_clients
-            response_json = {"user_steps": user_steps, "index": index}
-            response_packet = json.dumps(response_json)
-            for client in connected_users:
-                #print("Sending data to {}".format(client))
-                try:
-                    await client_sockets[client].send(response_packet)
-                except:
                     pass
 
         if dead_clients:
@@ -297,8 +311,14 @@ async def test():
 
             dead_clients.clear()
 
-        end_time = time.time()
-        time_elapsed = end_time - start_time
+        index += 1
+
+
+        if step == step_length:
+            step = 1
+        else:
+            step += 1
+
 
         
 
