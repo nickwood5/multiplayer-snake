@@ -1,5 +1,7 @@
 import asyncio
+from glob import glob
 from struct import pack
+from turtle import position
 import websockets
 import time, threading, json
 import random
@@ -35,7 +37,6 @@ def remove_client(client):
     player_growth.pop(client)
     client_sockets.pop(client)
 
-head_positions = {}
 movements = {}
 moves = {}
 inactivity = {}
@@ -46,21 +47,41 @@ player_speeds = {}
 
 client_sockets = {}
 
+fruits = []
+
 def createFruit():
-    y = random.randint(1, 50)
-    x = random.randint(1, 50)
-    return {"x": x, "y": y}
+    global player_nodes, fruits
+
+    valid_fruit_position = False
+    while valid_fruit_position == False:
+
+        y = random.randint(1, 50)
+        x = random.randint(1, 50)
+        location = {"x": x, "y": y}
+
+        valid_fruit_position = True
+        for client in player_nodes.keys():
+            if location in player_nodes[client]:
+                valid_fruit_position = False
+                break
+
+        if location in fruits:
+            valid_fruit_position = False
+
+    return location
 
 
-f1 = createFruit()
-fruits = [f1]
 
-for a in range (0, 20):
+
+
+for a in range (0, 100):
     fruit = createFruit()
     fruits.append(createFruit())
 
 
 async def connection_handler(websocket, client):
+    global connected_users, inactivity, client_sockets, player_nodes, movements, player_growth, fruits, player_colours
+
     connected_users.append(client)         
     inactivity[client] = 0
     client_sockets[client] = websocket
@@ -74,24 +95,42 @@ async def connection_handler(websocket, client):
 
     await websocket.send(json.dumps(package))
 
-async def spawn_handler(message, client):
+
+def choose_spawn_position():
+    global player_nodes, fruits
+
+    valid_spawn = False
+    while valid_spawn == False:
+        x = random.randint(5, 45)
+        y = random.randint(5, 45)
+
+        location = {"x": x, "y": y}
+        ###print("Choose {}".format(location))
+        valid_spawn = True
+
+        for client in player_nodes.keys():
+            if location in player_nodes[client]:
+                valid_spawn = False
+                break
+
+        if location in fruits:
+            valid_spawn = False
+    
+    return location
+
+def spawn_handler(message, client):
+    global alive_clients, new_users, player_nodes, player_growth, player_colours, player_speeds, moves, movements
+
     player_colour = message["colour"]
-    alive_clients.append(client)
+    player_colours[client] = player_colour
+    
+
+
     new_users.append(client)
 
-    head_positions[client] = {"x": 20, "y": 20}
+def move_handler(message, client):
+    global moves
 
-    player_nodes[client] = []
-    player_nodes[client].append(head_positions[client])
-    player_growth[client] = 5
-    player_colours[client] = player_colour
-    player_speeds[client] = 2
-    print(player_speeds[client])
-    
-    moves[client] = ['u']
-    movements[client] = {"x": 0, "y": -1}
-
-async def move_handler(message, client):
     new_direction = message["direction"]
             
     #print("Client {} sent message {}".format(client, message))
@@ -129,30 +168,34 @@ async def move_handler(message, client):
 
 
 async def input_handler(websocket, client):
+    global connected_users, player_speeds
+
     async for message in websocket:
         message = json.loads(message)
-        print("Received message {} from {}".format(message, client))
+        #print("Received message {} from {}".format(message, client))
         input_type = message["type"]
 
         if input_type == "connect":
             await connection_handler(websocket, client)
             
         elif input_type == "spawn" and client in connected_users:
-            await spawn_handler(message, client)
+            spawn_handler(message, client)
             
-        elif input_type == "move":
-            await move_handler(message, client)
+        elif input_type == "move" and client in alive_clients:
+            move_handler(message, client)
         
-        elif input_type == "increase_speed":
+        elif input_type == "increase_speed" and client in alive_clients:
             player_speeds[client] = 1
 
-        elif input_type == "decrease_speed":
+        elif input_type == "decrease_speed" and client in alive_clients:
             player_speeds[client] = 2
 
 async def send(client, data):
     await client.send(data)
 
 def update_moves(client, changes):
+    global moves, movements, inactivity
+
     if moves[client][0] == "u":
         if movements[client]["y"] == 0:
             movements[client]["y"] = -1
@@ -185,6 +228,8 @@ def update_moves(client, changes):
     inactivity[client] = 0
 
 def move_snake(client, changes, user_steps):
+    global inactivity, player_growth, player_nodes, movements
+
     user_steps.append(client)
     if len(moves[client]) > 0:
         update_moves(client, changes)
@@ -200,32 +245,48 @@ def move_snake(client, changes, user_steps):
         #print("MOVING SNAKE")
         player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]} )
         player_nodes[client].pop()
-    print("{} Head at {}, {}".format(round(time.time(), 0), player_nodes[client][0]["y"], player_nodes[client][0]["x"]))
+    ###print("{} Head at {}, {}".format(round(time.time(), 0), player_nodes[client][0]["y"], player_nodes[client][0]["x"]))
     #print(player_nodes)
     return user_steps
 
 async def test():
-    global index, step
+    global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
     while (1):
-        time.sleep(0.05)
+        
+        start_time = time.time()
         #print("STEP IS {}".format(step))
-        print("{} Access game runner, connected are {}, alive are {}, new are {}".format(round(time.time(), 0), connected_users, alive_clients, new_users))
-        #start_time = time.time()
+        #print("{} Access game runner, connected are {}, alive are {}, new are {}".format(round(time.time(), 0), connected_users, alive_clients, new_users))
+        #
         changes = {"movements": {}, "new_users": {}, "dead_clients": {}, "growth": {}, "new_fruits": [], "eaten_fruits": []}
-
+        pending_clients = []
         if len(new_users) > 0:
             #print(new_users)
+            users_added = 0
             for new_user in new_users:
+                pos = choose_spawn_position()
+
+                player_nodes[new_user] = []
+                player_nodes[new_user].append(pos)
+                player_growth[new_user] = 5
+                player_speeds[new_user] = 2
+                ###print(player_speeds[new_user])
+
+                moves[new_user] = ['u']
+                movements[new_user] = {"x": 0, "y": -1}
+                alive_clients.append(new_user)
                 changes["new_users"][new_user] = {}
                 changes["new_users"][new_user]["nodes"] = player_nodes[new_user]
                 changes["new_users"][new_user]["direction"] = movements[new_user]
                 changes["new_users"][new_user]["growth"] = player_growth[new_user]
                 changes["new_users"][new_user]["colours"] = player_colours[new_user]
 
+                users_added += 1
+
+
         user_steps = []
 
         for client in connected_users:
-            if client in alive_clients and client not in new_users:
+            if client in alive_clients and client not in new_users and client not in pending_clients:
                 #print({"CLIENT {} LIVES".format(client)})
                 if player_speeds[client] == 2:
                     if step == 2:
@@ -235,11 +296,6 @@ async def test():
 
             else:
                 inactivity[client] += 1
-          
-            #if inactivity[client] > 100:
-            #    dead_clients.append(client)
-            #    connected_users.remove(client)       
-            #    #alive_clients.remove(client)
         
         changes["user_steps"] = user_steps
 
@@ -260,9 +316,10 @@ async def test():
                         dead_clients.append(client)
                         player_collision = True
                         break
+
             if not player_collision:
                 if player_head["x"] == 0 or player_head["x"] == 51 or player_head["y"] == 0 or player_head["y"] == 51:
-                    print("CLIENT {} HIT THE WALL".format(client))
+                    ###print("CLIENT {} HIT THE WALL".format(client))
                     dead_clients.append(client)
                     player_collision = True
             if not player_collision:
@@ -277,8 +334,6 @@ async def test():
                         changes["growth"][client] = 5
                         changes["eaten_fruits"].append({"x": fruit_position["x"], "y": fruit_position["y"]})
                         break
-
-
 
         if dead_clients:
             changes["dead_clients"] = dead_clients
@@ -319,10 +374,16 @@ async def test():
         else:
             step += 1
 
+        end_time = time.time()
+        time_elapsed = end_time - start_time
+        ##("Time elapsed was {}".format(time_elapsed))
 
-        
+        sleep_time = 0.05 - time_elapsed
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+        else:
+            print("Not sleeping, because the function took {} seconds. Added {} users. {} alive clients".format(time_elapsed, users_added, len(alive_clients)))
 
-        #print("Time elapsed was {}".format(time_elapsed))
 async def main():
     #print("Main")
     print(time.time())

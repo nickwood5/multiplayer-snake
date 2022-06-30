@@ -24,7 +24,7 @@ if (local_host) {
 console.log("Initializing...")
 
 var request = new XMLHttpRequest();
-request.open('GET', api_url, false);  // `false` makes the request synchronous
+request.open('GET', api_url, false); 
 request.send(null);
 
 if (request.status === 200) {
@@ -260,6 +260,7 @@ socket.onmessage = function(message) {
 };
 
 function keyUp(press) {
+    let validInput = false
     switch (press.key) {
         case "ArrowUp":
             //console.log("u")
@@ -282,7 +283,7 @@ function keyUp(press) {
             validInput = true
             break
     }
-    if (direction && speed_up == true) {
+    if (validInput == true && speed_up == true) {
         slow_down_json = {"type": "decrease_speed"}
         slow_down_packet = JSON.stringify(slow_down_json)
         socket.send(slow_down_packet)
@@ -314,7 +315,7 @@ function sendInput(press) {
             validInput = true
             break
     }
-    if (direction) {
+    if (validInput) {
         if (direction == previous_direction && speed_up == false) {
             speed_up_json = {"type": "increase_speed"}
             speed_up_packet = JSON.stringify(speed_up_json)
