@@ -310,14 +310,21 @@ async def test():
             player_head = player_nodes[client][0]
             player_collision = False
             for target_client in alive_clients:
-                if client != target_client:
-                    #print("Client {} nodes:".format(target_client))
-  
-                    if player_head in player_nodes[target_client]:
-                        #print("Client {} hit client {}".format(client, target_client))
-                        dead_clients.append(client)
-                        player_collision = True
-                        break
+                if player_collision:
+                    break
+                #print("Client {} nodes:".format(target_client))
+                for node_num in range (0, len(player_nodes[target_client])):
+                    node = player_nodes[target_client][node_num]
+                    if player_head == node:
+                        if client == target_client:
+                            if node_num != 0:
+                                dead_clients.append(client)
+                                player_collision = True
+                                break
+                        else:
+                            dead_clients.append(client)
+                            player_collision = True
+                            break
 
             if not player_collision:
                 if player_head["x"] == 0 or player_head["x"] == (game_width + 1) or player_head["y"] == 0 or player_head["y"] == (game_height + 1):
