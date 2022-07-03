@@ -17,11 +17,11 @@
         }
         :root {
             --numRows: 50;
-            --numCols: 50;
+            --numCols: 100;
         }
         #game-board {
             background-color: rgb(51, 51, 51);
-            width: 80vmin;
+            width: 160vmin;
             height: 80vmin;
             margin-top: 10vmin;
             margin-left: auto;
@@ -39,6 +39,12 @@
         .colourNode {
             background-color: var(--node-color, red);
             border: .25vmin solid black;
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
         }
 
         .catapillarHead {
@@ -118,6 +124,36 @@
         @keyframes fadeIn {
             from {opacity: 0;}
             to {opacity:1 ;}
+        }
+
+        @-moz-keyframes fadeIn {
+            /* Firefox */
+            from {
+                opacity:0;
+            }
+            to {
+                opacity:1;
+            }
+        }
+
+        @-webkit-keyframes fadeIn {
+            /* Safari and Chrome */
+            from {
+                opacity:0;
+            }
+            to {
+                opacity:1;
+            }
+        }
+
+        @-o-keyframes fadeIn {
+            /* Opera */
+            from {
+                opacity:0;
+            }
+            to {
+                opacity: 1;
+            }
         }
     </style>
 
