@@ -1,4 +1,5 @@
 import asyncio
+from turtle import TurtleScreen
 import websockets, json, random
 import requests, time, threading
 
@@ -21,21 +22,131 @@ async def new(websocket, current_direction):
 
         await asyncio.sleep(1)
 
+
+async def receive_websocket_message(websocket):
+    message = await websocket.recv()
+    print(message)
+
+    return message
+
+async def change_direction(websocket, new_dir):
+    await websocket.send(json.dumps({"type": "move", "direction": new_dir}))
+    
+async def turn_left(websocket, current_direction):
+    if current_direction == 1:
+        new_direction = 4
+        dir = "u"
+    elif current_direction == 2:
+        new_direction = 3
+        dir = "d"
+    elif current_direction == 3:
+        new_direction = 1
+        dir = "r"
+    elif current_direction == 4:
+        new_direction = 2
+        dir = "l"
+
+    await change_direction(websocket, dir)
+
+    return new_direction
+
+async def turn_right(websocket, current_direction):
+    if current_direction == 1:
+        new_direction = 3
+        dir = "d"
+    elif current_direction == 2:
+        new_direction = 4
+        dir = "u"
+    elif current_direction == 3:
+        new_direction = 2
+        dir = "l"
+    elif current_direction == 4:
+        new_direction = 1
+        dir = "r"
+
+    await change_direction(websocket, dir)
+
+    return new_direction
+
+async def random_turn(websocket, current_direction):
+    print("Turning")
+    turn = random.randint(1, 2)
+    if turn == 1:
+        new_direction = await turn_left(websocket, current_direction)
+    else:
+        new_direction = await turn_right(websocket, current_direction)
+    
+    return new_direction
+
+
 async def test(id):
     current_direction = "u"
     async with websockets.connect(app_url + str(id)) as websocket:
+        bot_id = "/" + id
         await websocket.send(json.dumps({"type": "connect"}))
+        message = await websocket.recv()
+        message = json.loads(message)
+        print(message)
         await asyncio.sleep(1)
         await websocket.send(json.dumps({"type": "spawn", "colour": "#00FF00"}))
-        await asyncio.sleep(1)
-        print("Spawn")
-        await new(websocket, current_direction)
+        message = await websocket.recv()
+        message = json.loads(message)
+        print(message)
+
+        bot_spawn_info = message["new_users"][bot_id]
+        bot_head = bot_spawn_info["nodes"][0]
+        bot_x = bot_head["x"]
+        bot_y = bot_head["y"]
+        bot_direction = bot_spawn_info["direction"]
+
+        if bot_direction == {"x": 1, "y": 0}:
+            direction = 1
+        elif bot_direction == {"x": -1, "y": 0}:
+            direction = 2
+        elif bot_direction == {"x": 0, "y": 1}:
+            direction = 3
+        elif bot_direction == {"x": 0, "y": -1}:
+            direction = 4
+        
+        print(direction)
+
+
+        print(bot_spawn_info)
+
+        while 1:
+            message = await websocket.recv()
+            message = json.loads(message)
+            user_steps = message["user_steps"]
+            dead_users = message["dead_clients"]
+            if (bot_id) in user_steps:
+                print("bot stepped")
+                bot_x += bot_direction["x"]
+                bot_y += bot_direction["y"]
+                print("bot head is {}, {}".format(bot_x, bot_y))
+
+                if (bot_y == 1 and direction != 1 and direction != 2) or (bot_x == 1 and direction != 3 and direction != 4) or (bot_x == 100 and direction != 3 and direction != 4) or (bot_y == 50 and direction != 1 and direction != 2):
+                    direction = await random_turn(websocket, direction)
+                    if direction == 1:
+                        bot_direction = {"x": 1, "y": 0}
+                    elif direction == 2:
+                        bot_direction = {"x": -1, "y": 0}
+                    elif direction == 3:
+                        bot_direction = {"x": 0, "y": 1}
+                    elif direction == 4:
+                        bot_direction = {"x": 0, "y": -1}
+
+                    
+            print(message)
+
             
 
+            if bot_id in dead_users:
+                return
 
 
-
-
+        #await asyncio.sleep(1)
+        #print("Spawn")
+        #await new(websocket, current_direction)
 
 async def speed_up(period, websocket):
     websocket.send(json.dumps({"type": "increase_speed"}))

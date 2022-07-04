@@ -21,9 +21,8 @@
         }
         #game-board {
             background-color: rgb(51, 51, 51);
-            width: 160vmin;
-            height: 80vmin;
-            margin-top: 10vmin;
+            width: 200vmin;
+            height: 100vmin;
             margin-left: auto;
             margin-right: auto;
             display: grid;
@@ -37,6 +36,17 @@
         }
 
         .colourNode {
+            background-color: var(--node-color, red);
+            border: .25vmin solid rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+        }
+
+        .otherPlayer {
             background-color: var(--node-color, red);
             border: .25vmin solid black;
             animation: fadeIn 0.05s;
@@ -170,10 +180,8 @@
         </span>
     </div>
 
-<body style="background-color:rgb(194, 194, 194)">
-    <div id="game-board">
-        <div chile="snakeNode" </div>
-    </div>
+<body style="background-color:rgb(24, 24, 24)">
+    <div id="game-board"></div>
 </body>
 
 <script src="./input.js" defer> </script>
