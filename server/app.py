@@ -76,7 +76,7 @@ def createFruit():
 
 
 
-for a in range (0, 100):
+for a in range (0, 10):
     fruit = createFruit()
     fruits.append(createFruit())
 
@@ -251,6 +251,25 @@ def move_snake(client, changes, user_steps):
     #print(player_nodes)
     return user_steps
 
+
+def random_direction():
+    dir = random.randint(1, 4)
+
+    if dir == 1:
+        bot_direction = {"x": -1, "y": 0}
+        letter_direction = "l"
+    elif dir == 2:
+        bot_direction = {"x": 1, "y": 0}
+        letter_direction = "r"
+    elif dir == 3:
+        bot_direction = {"x": 0, "y": 1}
+        letter_direction = "d"
+    elif dir == 4:
+        bot_direction = {"x": 0, "y": -1}
+        letter_direction = "u"
+
+    return bot_direction, letter_direction
+
 async def test():
     global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
     while (1):
@@ -273,8 +292,9 @@ async def test():
                 player_speeds[new_user] = 2
                 ###print(player_speeds[new_user])
 
-                moves[new_user] = ['u']
-                movements[new_user] = {"x": 0, "y": -1}
+                dir, letter_dir = random_direction()
+                moves[new_user] = [letter_dir]
+                movements[new_user] = dir
                 alive_clients.append(new_user)
                 changes["new_users"][new_user] = {}
                 changes["new_users"][new_user]["nodes"] = player_nodes[new_user]

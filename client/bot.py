@@ -25,73 +25,73 @@ async def new(websocket, current_direction):
 
 async def receive_websocket_message(websocket):
     message = await websocket.recv()
-    print(message)
 
     return message
 
 async def change_direction(websocket, new_dir):
     await websocket.send(json.dumps({"type": "move", "direction": new_dir}))
     
-async def turn_left(websocket, current_direction):
-    if current_direction == 1:
-        new_direction = 4
-        dir = "u"
-    elif current_direction == 2:
-        new_direction = 3
-        dir = "d"
-    elif current_direction == 3:
-        new_direction = 1
-        dir = "r"
-    elif current_direction == 4:
-        new_direction = 2
-        dir = "l"
+
+async def random_direction(websocket, bot_x, bot_y, current_letter_direction):
+    valid_directions = []
+
+    if bot_x != 1:
+        valid_directions.append("l")
+    if bot_x != 100:
+        valid_directions.append("r")
+
+    if bot_y != 1:
+        valid_directions.append("u")
+    if bot_y != 50:
+        valid_directions.append("d")
+
+    #print("Valids are {}".format(valid_directions))
+
+
+    if current_letter_direction == "u" and "d" in valid_directions:
+        valid_directions.remove("d")
+    elif current_letter_direction == "d" and "u" in valid_directions:
+        valid_directions.remove("u")
+    elif current_letter_direction == "l" and "r" in valid_directions:
+        valid_directions.remove("r")
+    elif current_letter_direction == "r" and "l" in valid_directions:
+        valid_directions.remove("l")
+
+    dir_index = random.randint(0, len(valid_directions) - 1)
+    #print("Dir_index is {}, dirs are {}".format(dir_index, valid_directions))
+    dir = valid_directions[dir_index]
+    if dir == "l":
+        bot_direction = {"x": -1, "y": 0}
+    elif dir == "r":
+        bot_direction = {"x": 1, "y": 0}
+    elif dir == "d":
+        bot_direction = {"x": 0, "y": 1}
+    elif dir == "u":
+        bot_direction = {"x": 0, "y": -1}
+
 
     await change_direction(websocket, dir)
 
-    return new_direction
-
-async def turn_right(websocket, current_direction):
-    if current_direction == 1:
-        new_direction = 3
-        dir = "d"
-    elif current_direction == 2:
-        new_direction = 4
-        dir = "u"
-    elif current_direction == 3:
-        new_direction = 2
-        dir = "l"
-    elif current_direction == 4:
-        new_direction = 1
-        dir = "r"
-
-    await change_direction(websocket, dir)
-
-    return new_direction
-
-async def random_turn(websocket, current_direction):
-    print("Turning")
-    turn = random.randint(1, 2)
-    if turn == 1:
-        new_direction = await turn_left(websocket, current_direction)
-    else:
-        new_direction = await turn_right(websocket, current_direction)
-    
-    return new_direction
+    return bot_direction, dir
 
 
 async def test(id):
-    current_direction = "u"
     async with websockets.connect(app_url + str(id)) as websocket:
         bot_id = "/" + id
         await websocket.send(json.dumps({"type": "connect"}))
         message = await websocket.recv()
         message = json.loads(message)
-        print(message)
+        #print(message)
         await asyncio.sleep(1)
         await websocket.send(json.dumps({"type": "spawn", "colour": "#00FF00"}))
         message = await websocket.recv()
         message = json.loads(message)
-        print(message)
+        #print(message)
+
+        while bot_id not in message["new_users"].keys():
+            message = await websocket.recv()
+            message = json.loads(message)
+
 
         bot_spawn_info = message["new_users"][bot_id]
         bot_head = bot_spawn_info["nodes"][0]
@@ -100,18 +100,22 @@ async def test(id):
         bot_direction = bot_spawn_info["direction"]
 
         if bot_direction == {"x": 1, "y": 0}:
-            direction = 1
+            direction = 'r' # R
         elif bot_direction == {"x": -1, "y": 0}:
-            direction = 2
+            direction = "l" # L
         elif bot_direction == {"x": 0, "y": 1}:
-            direction = 3
+            direction = "d" # D
         elif bot_direction == {"x": 0, "y": -1}:
-            direction = 4
+            direction = "u" # U
         
-        print(direction)
+        #print(direction)
+        
 
 
-        print(bot_spawn_info)
+        #print(bot_spawn_info)
+
+        idle_steps = 20
+        step = 1
 
         while 1:
             message = await websocket.recv()
@@ -119,24 +123,21 @@ async def test(id):
             user_steps = message["user_steps"]
             dead_users = message["dead_clients"]
             if (bot_id) in user_steps:
-                print("bot stepped")
+                #print("bot stepped")
+  
+
+                
                 bot_x += bot_direction["x"]
                 bot_y += bot_direction["y"]
-                print("bot head is {}, {}".format(bot_x, bot_y))
+                #print("bot head is {}, {}".format(bot_x, bot_y))
 
-                if (bot_y == 1 and direction != 1 and direction != 2) or (bot_x == 1 and direction != 3 and direction != 4) or (bot_x == 100 and direction != 3 and direction != 4) or (bot_y == 50 and direction != 1 and direction != 2):
-                    direction = await random_turn(websocket, direction)
-                    if direction == 1:
-                        bot_direction = {"x": 1, "y": 0}
-                    elif direction == 2:
-                        bot_direction = {"x": -1, "y": 0}
-                    elif direction == 3:
-                        bot_direction = {"x": 0, "y": 1}
-                    elif direction == 4:
-                        bot_direction = {"x": 0, "y": -1}
+                if step != idle_steps:
+                    step += 1
+                else:
+                    step = 1
 
-                    
-            print(message)
+                if step == idle_steps or bot_y == 1 or bot_y == 50 or bot_x == 1 or bot_x == 100:
+                    bot_direction, direction = await random_direction(websocket, bot_x, bot_y, direction)
 
             
 
@@ -220,9 +221,10 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
 
     threads = list()
-    for index in range(1):
+    for index in range(5):
         logging.info("Main    : create and start thread %d.", index)
         x = threading.Thread(target=thread_function, args=(index,))
+        time.sleep(0.5)
         threads.append(x)
         x.start()
 
