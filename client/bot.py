@@ -221,7 +221,7 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
 
     threads = list()
-    for index in range(5):
+    for index in range(50):
         logging.info("Main    : create and start thread %d.", index)
         x = threading.Thread(target=thread_function, args=(index,))
         time.sleep(0.5)
