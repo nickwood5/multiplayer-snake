@@ -5,8 +5,8 @@ import random
 import signal
 import os
 
-game_width = 100
-game_height = 50
+game_width = 200
+game_height = 100
 
 local_host = False
 index = 0

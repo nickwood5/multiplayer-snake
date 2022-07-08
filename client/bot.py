@@ -114,7 +114,7 @@ async def test(id):
 
         #print(bot_spawn_info)
 
-        idle_steps = 20
+        idle_steps = random.randint(7, 20)
         step = 1
 
         while 1:
@@ -138,6 +138,8 @@ async def test(id):
 
                 if step == idle_steps or bot_y == 1 or bot_y == 50 or bot_x == 1 or bot_x == 100:
                     bot_direction, direction = await random_direction(websocket, bot_x, bot_y, direction)
+                    idle_steps = random.randint(7, 20)
+                    step = 1
 
             
 
@@ -221,10 +223,9 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
 
     threads = list()
-    for index in range(50):
+    for index in range(1):
         logging.info("Main    : create and start thread %d.", index)
         x = threading.Thread(target=thread_function, args=(index,))
-        time.sleep(0.5)
         threads.append(x)
         x.start()
 
