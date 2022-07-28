@@ -8,18 +8,12 @@ import os
 game_width = 200
 game_height = 100
 
-local_host = False
+local_host = True
 index = 0
 
 step_length = 2
 step = 1
 
-if local_host:
-    address = "127.0.0.1"
-    port = 8770
-else:
-    address = "0.0.0.0"
-    port = 8080
 
 list = []
 connected_users = []
@@ -76,7 +70,7 @@ def createFruit():
 
 
 
-for a in range (0, 10):
+for a in range (0, 20):
     fruit = createFruit()
     fruits.append(createFruit())
 
@@ -272,6 +266,7 @@ def random_direction():
 
 async def test():
     global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
+    print("start")
     while (1):
         users_added = 0
         
@@ -408,10 +403,17 @@ async def test():
 async def main():
     # Set the stop condition when receiving SIGTERM.
 
+    if local_host:
+        selected_host = "localhost"
+        selected_port = "8000"
+    else:
+        selected_host = ""
+        selected_port = os.environ["PORT"]
+
     async with websockets.serve(
         input_handler,
-        host="",
-        port=int(os.environ["PORT"]),
+        host=selected_host,
+        port=selected_port
     ):
         await asyncio.Future()
 def between_callback():

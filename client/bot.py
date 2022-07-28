@@ -1,13 +1,17 @@
 import asyncio
 from turtle import TurtleScreen
+from numpy import block
 import websockets, json, random
 import requests, time, threading
 
-local_host = False
+local_host = True
+max_x = 200
+max_y = 100
+
 
 if local_host:
-    api_url = "http://localhost:8769/get/"
-    app_url = "ws://127.0.0.1:8770/"
+    api_url = "http://localhost:5000/get/"
+    app_url = "ws://127.0.0.1:8000/"
 else:
     api_url = "https://nickwood5.pythonanywhere.com/get/"
     app_url = "wss://websockets-echo-nick.herokuapp.com/"
@@ -32,124 +36,313 @@ async def change_direction(websocket, new_dir):
     await websocket.send(json.dumps({"type": "move", "direction": new_dir}))
     
 
-async def random_direction(websocket, bot_x, bot_y, current_letter_direction):
+async def random_direction(websocket, bot_x, bot_y, current_letter_direction, player_nodes, bot_direction):
+   
+                
     valid_directions = []
 
+
     if bot_x != 1:
-        valid_directions.append("l")
-    if bot_x != 100:
-        valid_directions.append("r")
+        valid_directions.append({"x": -1, "y": 0})
+    if bot_x != max_x:
+        valid_directions.append({"x": 1, "y": 0})
 
     if bot_y != 1:
-        valid_directions.append("u")
-    if bot_y != 50:
-        valid_directions.append("d")
+        valid_directions.append({"x": 0, "y": -1})
+    if bot_y != max_y:
+        valid_directions.append({"x": 0, "y": 1})
 
     #print("Valids are {}".format(valid_directions))
 
+    if bot_direction == {"x": 0, "y": -1} and {"x": 0, "y": 1} in valid_directions:
+        valid_directions.remove({"x": 0, "y": 1})
+    elif bot_direction == {"x": 0, "y": 1} and {"x": 0, "y": -1} in valid_directions:
+        valid_directions.remove({"x": 0, "y": -1})
+    elif bot_direction == {"x": -1, "y": 0} and "r" in valid_directions:
+        valid_directions.remove({"x": 1, "y": 0})
+    elif bot_direction == {"x": 1, "y": 0} and {"x": -1, "y": 0} in valid_directions:
+        valid_directions.remove({"x": -1, "y": 0})
 
-    if current_letter_direction == "u" and "d" in valid_directions:
-        valid_directions.remove("d")
-    elif current_letter_direction == "d" and "u" in valid_directions:
-        valid_directions.remove("u")
-    elif current_letter_direction == "l" and "r" in valid_directions:
-        valid_directions.remove("r")
-    elif current_letter_direction == "r" and "l" in valid_directions:
-        valid_directions.remove("l")
+    #print("Bot is currently at {}, {}".format(bot_x, bot_y))
+    #print("Valid directions are {}".format(valid_directions))
+    good_directions = []
+    for direction in valid_directions:
+        #print("Test direction {}".format(direction))
+        projected_bot_x = bot_x + direction["x"]
+        projected_bot_y = bot_y + direction["y"]
 
-    dir_index = random.randint(0, len(valid_directions) - 1)
-    #print("Dir_index is {}, dirs are {}".format(dir_index, valid_directions))
-    dir = valid_directions[dir_index]
-    if dir == "l":
-        bot_direction = {"x": -1, "y": 0}
-    elif dir == "r":
-        bot_direction = {"x": 1, "y": 0}
-    elif dir == "d":
-        bot_direction = {"x": 0, "y": 1}
-    elif dir == "u":
-        bot_direction = {"x": 0, "y": -1}
+        projected_bot_pos = {"x": projected_bot_x, "y": projected_bot_y}
+        #print("Projected pos is {}".format(projected_bot_pos))
 
+        evade = False
+        for player in player_nodes:
+            nodes = player_nodes[player]
+            #print("Nodes for {} are {}".format(player, nodes))
+            if projected_bot_pos in nodes:
+                #print("Evade")
+                evade = True
+        
+        if evade == False:
+            good_directions.append(direction)
+            #valid_directions.remove(direction)
 
-    await change_direction(websocket, dir)
+    #print("Valid directions are {}".format(good_directions))
+    if (len(good_directions) - 1) > 0:
+        dir_index = random.randint(0, len(good_directions) - 1)
+        #print("Dir_index is {}, dirs are {}".format(dir_index, valid_directions))
+        bot_direction = good_directions[dir_index]
 
-    return bot_direction, dir
-
-
-async def test(id):
-    async with websockets.connect(app_url + str(id)) as websocket:
-        bot_id = "/" + id
-        await websocket.send(json.dumps({"type": "connect"}))
-        message = await websocket.recv()
-        message = json.loads(message)
-        #print(message)
-        await asyncio.sleep(1)
-        await websocket.send(json.dumps({"type": "spawn", "colour": "#00FF00"}))
-        message = await websocket.recv()
-        message = json.loads(message)
-        #print(message)
-
-        while bot_id not in message["new_users"].keys():
-            message = await websocket.recv()
-            message = json.loads(message)
-
-
-        bot_spawn_info = message["new_users"][bot_id]
-        bot_head = bot_spawn_info["nodes"][0]
-        bot_x = bot_head["x"]
-        bot_y = bot_head["y"]
-        bot_direction = bot_spawn_info["direction"]
-
-        if bot_direction == {"x": 1, "y": 0}:
-            direction = 'r' # R
-        elif bot_direction == {"x": -1, "y": 0}:
-            direction = "l" # L
+        if bot_direction == {"x": -1, "y": 0}:
+            dir = "l"
+        elif bot_direction == {"x": 1, "y": 0}:
+            dir = "r"
         elif bot_direction == {"x": 0, "y": 1}:
-            direction = "d" # D
+            dir = "d"
         elif bot_direction == {"x": 0, "y": -1}:
-            direction = "u" # U
-        
-        #print(direction)
-        
+            dir = "u"
+
+        #print("Select {}: {}".format(dir, bot_direction))
+        await change_direction(websocket, dir)
 
 
-        #print(bot_spawn_info)
+        return bot_direction, dir
+    return {"x": 0, "y": -1}, "u"
 
-        idle_steps = random.randint(7, 20)
-        step = 1
 
-        while 1:
+async def test():
+    while 1:
+        response = requests.get(api_url)
+        result = response.json()
+        id = result["id"]
+        async with websockets.connect(app_url + str(id)) as websocket:
+
+            print("Start")
+            bot_id = "/" + id
+            await websocket.send(json.dumps({"type": "connect"}))
             message = await websocket.recv()
             message = json.loads(message)
-            user_steps = message["user_steps"]
-            dead_users = message["dead_clients"]
-            if (bot_id) in user_steps:
-                #print("bot stepped")
-  
+            #print("Connection message is {}".format(message))
+            player_nodes = message["data"]["nodes"]
+            player_directions = message["data"]["directions"]
+            player_growth = {}
 
-                
-                bot_x += bot_direction["x"]
-                bot_y += bot_direction["y"]
-                #print("bot head is {}, {}".format(bot_x, bot_y))
-
-                if step != idle_steps:
-                    step += 1
+            for player in player_nodes.keys():
+                if player in message["data"]["growth"].keys():
+                    player_growth[player] = message["data"]["growth"][player]
                 else:
-                    step = 1
-
-                if step == idle_steps or bot_y == 1 or bot_y == 50 or bot_x == 1 or bot_x == 100:
-                    bot_direction, direction = await random_direction(websocket, bot_x, bot_y, direction)
-                    idle_steps = random.randint(7, 20)
-                    step = 1
-
+                    player_growth[player] = 0
             
 
-            if bot_id in dead_users:
-                return
+            await asyncio.sleep(1)
+            color = "%06x" % random.randint(0, 0xFFFFFF)
+            #print("Color is {}".format(color))
+            await websocket.send(json.dumps({"type": "spawn", "colour": "#" + color}))
+            message = await websocket.recv()
+            message = json.loads(message)
+            #print(message)
+            #print("Intermediate message is {}".format(message))
+            movements = message["movements"]
+            for player in movements:
+                player_new_direction = movements[player]
+                player_directions[player] = player_new_direction
+            new_players = message["new_users"]
+            for new_player in new_players.keys():
+                new_player_info = new_players[new_player]
+                #print("New player info for {} is {}".format(new_player, new_player_info))
+                player_nodes[new_player] = new_player_info["nodes"]
+                player_directions[new_player] = new_player_info["direction"]
+                player_growth[new_player] = new_player_info["growth"]
+
+            added_growth = message["growth"]
+            for player in added_growth:
+                new_player_growth = added_growth[player]
+                player_growth[player] += new_player_growth
+                #print("Player growth is {}".format(player_growth))
+
+            player_steps = message["user_steps"]
+            for player in player_steps:
+                player_direction = player_directions[player]
+                if player_growth[player] > 0:
+                    player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                    player_growth[player] -= 1
+                else:
+                    player_direction = player_directions[player]
+                    player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                    player_nodes[player].pop()
+
+            if bot_id not in message["new_users"].keys():
+                while bot_id not in message["new_users"].keys():
+                    message = await websocket.recv()
+                    message = json.loads(message)
+                    #print("Intermediate message is {}".format(message))
+                    movements = message["movements"]
+                    for player in movements:
+                        player_new_direction = movements[player]
+                        player_directions[player] = player_new_direction
+                    new_players = message["new_users"]
+                    for new_player in new_players.keys():
+                        new_player_info = new_players[new_player]
+                        #print("New player info for {} is {}".format(new_player, new_player_info))
+                        player_nodes[new_player] = new_player_info["nodes"]
+                        player_directions[new_player] = new_player_info["direction"]
+                        player_growth[new_player] = new_player_info["growth"]
+
+                    added_growth = message["growth"]
+                    for player in added_growth:
+                        new_player_growth = added_growth[player]
+                        player_growth[player] += new_player_growth
+                        #print("Player growth is {}".format(player_growth))
+
+                    player_steps = message["user_steps"]
+                    for player in player_steps:
+                        player_direction = player_directions[player]
+                        if player_growth[player] > 0:
+                            player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                            player_growth[player] -= 1
+                        else:
+                            player_direction = player_directions[player]
+                            player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                            player_nodes[player].pop()
 
 
-        #await asyncio.sleep(1)
-        #print("Spawn")
-        #await new(websocket, current_direction)
+            #print("Spawn message is {}".format(message))
+            new_players = message["new_users"]
+            for new_player in new_players.keys():
+                new_player_info = new_players[new_player]
+                #print("New player info for {} is {}".format(new_player, new_player_info))
+                player_nodes[new_player] = new_player_info["nodes"]
+                player_directions[new_player] = new_player_info["direction"]
+                player_growth[new_player] = new_player_info["growth"]
+
+            added_growth = message["growth"]
+            for player in added_growth:
+                new_player_growth = added_growth[player]
+                player_growth[player] += new_player_growth
+                #print("Player growth is {}".format(player_growth))
+                
+
+            player_steps = message["user_steps"]
+            for player in player_steps:
+                player_direction = player_directions[player]
+                if player_growth[player] > 0:
+                    player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                    player_growth[player] -= 1
+                else:
+                    player_direction = player_directions[player]
+                    player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                    player_nodes[player].pop()
+
+            #print("Player nodes are {}".format(player_nodes))
+
+            bot_spawn_info = message["new_users"][bot_id]
+            bot_head = bot_spawn_info["nodes"][0]
+            bot_x = bot_head["x"]
+            bot_y = bot_head["y"]
+            bot_direction = bot_spawn_info["direction"]
+
+            if bot_direction == {"x": 1, "y": 0}:
+                direction = 'r' # R
+            elif bot_direction == {"x": -1, "y": 0}:
+                direction = "l" # L
+            elif bot_direction == {"x": 0, "y": 1}:
+                direction = "d" # D
+            elif bot_direction == {"x": 0, "y": -1}:
+                direction = "u" # U
+            
+            #print(direction)
+            
+
+
+            #print(bot_spawn_info)
+
+            idle_steps = random.randint(7, 20)
+            #idle_steps = 2
+            step = 1
+
+            living = True
+            while living:
+                message = await websocket.recv()
+                message = json.loads(message)
+                #print(message)
+                movements = message["movements"]
+                for player in movements:
+                    player_new_direction = movements[player]
+                    player_directions[player] = player_new_direction
+                new_players = message["new_users"]
+                for new_player in new_players.keys():
+                    new_player_info = new_players[new_player]
+                    #print("New player info for {} is {}".format(new_player, new_player_info))
+                    player_nodes[new_player] = new_player_info["nodes"]
+                    player_directions[new_player] = new_player_info["direction"]
+                    player_growth[new_player] = new_player_info["growth"]
+
+                added_growth = message["growth"]
+                for player in added_growth:
+                    new_player_growth = added_growth[player]
+                    player_growth[player] += new_player_growth
+                    #print("Player growth is {}".format(player_growth))
+
+                player_steps = message["user_steps"]
+                for player in player_steps:
+                    player_direction = player_directions[player]
+                    if player_growth[player] > 0:
+                        player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                        player_growth[player] -= 1
+                    else:
+                        player_direction = player_directions[player]
+                        player_nodes[player].insert(0, {"x": player_nodes[player][0]["x"] + player_direction["x"], "y": player_nodes[player][0]["y"] + player_direction["y"]})
+                        player_nodes[player].pop()
+
+
+                user_steps = message["user_steps"]
+                dead_users = message["dead_clients"]
+                if (bot_id) in user_steps:
+                    #print("bot stepped")
+
+
+                    
+                    bot_x += bot_direction["x"]
+                    bot_y += bot_direction["y"]
+                    
+
+                    if step != idle_steps:
+                        step += 1
+                    else:
+                        step = 1
+
+                    projected_x = bot_x + bot_direction["x"]
+                    projected_y = bot_y + bot_direction["y"]
+                    projected_node = {"x": projected_x, "y": projected_y}
+
+                    #if projected_node in player_nodes[bot_id]:
+                    #    print("TRIGGER")
+
+                    dodge = False
+
+                    for other_player in player_nodes.keys():
+                        if other_player != bot_id:
+                            if projected_node in player_nodes[other_player]:
+                                dodge = True
+                                break
+
+                
+
+                    if step == idle_steps or bot_y == 1 or bot_y == max_y or bot_x == 1 or bot_x == max_x or projected_node in player_nodes[bot_id] or dodge:
+                        bot_direction, direction = await random_direction(websocket, bot_x, bot_y, direction, player_nodes, bot_direction)
+                        idle_steps = random.randint(7, 20)
+                        #idle_steps = 2
+                        step = 1
+
+                
+
+                if bot_id in dead_users:
+                    print("WE DIED")
+                    living = False
+
+
+            #await asyncio.sleep(1)
+            #print("Spawn")
+            #await new(websocket, current_direction)
 
 async def speed_up(period, websocket):
     websocket.send(json.dumps({"type": "increase_speed"}))
@@ -177,15 +370,15 @@ for r in range (0, 1000):
 
 
 def new2():
-    response = requests.get(api_url)
-    result = response.json()
-    id = result["id"]
-    print(id)
+    
+    #print(id)
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
-    loop.run_until_complete(test(id))
+    while (1):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(test())
 
 #asyncio.get_event_loop().run_until_complete(test(id))
 
@@ -223,7 +416,7 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
 
     threads = list()
-    for index in range(1):
+    for index in range(30):
         logging.info("Main    : create and start thread %d.", index)
         x = threading.Thread(target=thread_function, args=(index,))
         threads.append(x)
