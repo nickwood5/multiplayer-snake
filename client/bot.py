@@ -4,7 +4,7 @@ from numpy import block
 import websockets, json, random
 import requests, time, threading
 
-local_host = True
+local_host = False
 max_x = 200
 max_y = 100
 
@@ -136,7 +136,7 @@ async def test():
             await asyncio.sleep(1)
             color = "%06x" % random.randint(0, 0xFFFFFF)
             #print("Color is {}".format(color))
-            await websocket.send(json.dumps({"type": "spawn", "colour": "#" + color}))
+            await websocket.send(json.dumps({"type": "spawn", "colour": "#FFFFFF"}))
             message = await websocket.recv()
             message = json.loads(message)
             #print(message)
@@ -416,7 +416,7 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
 
     threads = list()
-    for index in range(30):
+    for index in range(1):
         logging.info("Main    : create and start thread %d.", index)
         x = threading.Thread(target=thread_function, args=(index,))
         threads.append(x)
