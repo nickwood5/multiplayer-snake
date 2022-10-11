@@ -3,24 +3,27 @@ var playerId = 1
 //var socket = new WebSocket("ws://test2-nickwood5-dev.apps.sandbox-m2.ll9k.p1.openshiftapps.com/8080")
 var id
 var data
-var api_url = "https://nickwood5.pythonanywhere.com/get/"
-var max_rows = 100
-var max_cols = 200
+var api_url 
 var app_url
 var socket
 var previous_direction = "u"
 var gameBoard
 var speed_up = false
 
-var local_host = true
+var local_host = false
 
 if (local_host) {
-    api_url = "http://localhost:5000/get/"
-    app_url = "ws://127.0.0.1:8000/"
+    api_url = "http://localhost:8769/get/"
+    app_url = "ws://127.0.0.1:8770/"
 } else {
     api_url = "https://nickwood5.pythonanywhere.com/get/"
     app_url = "wss://websockets-echo-nick.herokuapp.com/"
 }
+
+
+
+
+//console.log("Initializing...")
 
 var request = new XMLHttpRequest();
 request.open('GET', api_url, false);  // `false` makes the request synchronous
@@ -74,11 +77,14 @@ window.addEventListener('keyup', press => {
 
 
 function setAliveNotClickable(row, column, tile, colour) {
+    //console.log("color is " + colour)
+    //console.log("Create node at row " + row + ", col " + column)
     const cell = document.createElement('div')
     cell.style.gridRowStart = row
     cell.style.gridColumnStart = column
     cell.style.setProperty("--node-color", colour)
     cell.id = row + "," + column
+    //console.log("CREATE NODE " + cell.id)
     cell.classList.add(tile)
     gameBoard.appendChild(cell)
 }
@@ -92,11 +98,17 @@ function removeNode(row, column) {
     cell.remove()
 }
 
+function move_camera() {
+    game_state = data["data"]["nodes"]
+}
+
 var currentIndex = 0
 var previousIndex = 0
 var string_index
 var string_message
 var direction
+var x_offset = 0
+var y_offset = 0
 
 socket.onmessage = function(message) {
     console.log(Math.round((new Date()).getTime() / 1000) + " " + message.data)
@@ -104,20 +116,17 @@ socket.onmessage = function(message) {
     
     keys = Object.keys(response)
     if (keys[0] == "data") {
-        // On player load, draw all existing snakes and fruits on the board
         data = response
         let players = Object.keys(data["data"]["nodes"])
         for (let i = 0; i < players.length; i++) {
             let nodes = data["data"]["nodes"][players[i]]
             for (let j = 0; j < nodes.length; j++) {
-                if (is_tile_in_board(row, col) == true) {
-                    let row = parseInt(nodes[j]["y"])
-                    let col = parseInt(nodes[j]["x"])
-                    if ("/" + id == players[i]) {
-                        setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][players[i]])
-                    } else {
-                        setAliveNotClickable(row, col, 'otherPlayer', data["data"]["colours"][players[i]])
-                    }
+                let row = parseInt(nodes[j]["y"])
+                let col = parseInt(nodes[j]["x"])
+                if ("/" + id == players[i]) {
+                    setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][players[i]])
+                } else {
+                    setAliveNotClickable(row, col, 'otherPlayer2', data["data"]["colours"][players[i]])
                 }
             }
         }
@@ -125,12 +134,9 @@ socket.onmessage = function(message) {
         for (let i = 0; i < fruits.length; i++) {
             let row = parseInt(fruits[i]["y"])
             let col = parseInt(fruits[i]["x"])
-            if (is_tile_in_board(row, col) == true) {
-                setAliveNotClickable(row, col, 'fruitPiece')
-            }
+            setAliveNotClickable(row, col, 'fruitPiece')
         }
     } else {
-        // Regular "step"
         if (Object.keys(response["movements"]).length > 0) {
             let keys = Object.keys(response["movements"])
 
@@ -138,45 +144,52 @@ socket.onmessage = function(message) {
                 data["data"]["directions"][keys[i]] = response["movements"][keys[i]]     
             }
         }
-        // Add data from new spawned snakes and draw them on the board
         if (Object.keys(response["new_users"]).length > 0) {
             let new_users = Object.keys(response["new_users"])
             for (let i = 0; i < new_users.length; i++) {
-                console.log("Client spawned " + new_users[i])
-                console.log(response)
-                let nodes = response["new_users"][new_users[i]]["nodes"]
-                let growth = response["new_users"][new_users[i]]["growth"]
-                let colour = response["new_users"][new_users[i]]["colours"]
-                direction = response["new_users"][new_users[i]]["direction"]
-                if ("/" + id == new_users[i]) {
-                    if (direction.x == 1 && direction.y == 0) {
-                        previous_direction = "r"
-                    } else if (direction.x == -1 && direction.y == 0) {
-                        previous_direction = "l"
-                    } else if (direction.x == 0 && direction.y == 1) {
-                        previous_direction = "d"
-                    } else if (direction.x == 0 && direction.y == -1) {
-                        previous_direction = "u"
-                    }
-                    console.log("PREVIOUS IS " + previous_direction)
-                }
-
-                for (let n = 0; n < nodes.length; n++) {
-                    let row = parseInt(nodes[n]["y"])
-                    let col = parseInt(nodes[n]["x"])
+                    console.log("Client spawned " + new_users[i])
+                    console.log(response)
+                    let nodes = response["new_users"][new_users[i]]["nodes"]
+                    let growth = response["new_users"][new_users[i]]["growth"]
+                    let colour = response["new_users"][new_users[i]]["colours"]
+                    direction = response["new_users"][new_users[i]]["direction"]
                     if ("/" + id == new_users[i]) {
-                        setAliveNotClickable(row, col, 'colourNode', colour)
-                    } else {
-                        setAliveNotClickable(row, col, 'otherPlayer', colour)
+                        if (direction.x == 1 && direction.y == 0) {
+                            previous_direction = "r"
+                        } else if (direction.x == -1 && direction.y == 0) {
+                            previous_direction = "l"
+                        } else if (direction.x == 0 && direction.y == 1) {
+                            previous_direction = "d"
+                        } else if (direction.x == 0 && direction.y == -1) {
+                            previous_direction = "u"
+                        }
+                        console.log("PREVIOUS IS " + previous_direction)
+
+
+                        row = nodes[0].x
+                        col = nodes[0].y
+                        console.log("Player spawned at " + row + ", " + col)
+                        x_offset = col - 100
+                        y_offset = row - 50
+                        console.log("Player spawned at " + y_offset + ", " + x_offset)
                     }
-                }
-                data["data"]["nodes"][new_users[i]] = nodes
-                data["data"]["growth"][new_users[i]] = growth
-                data["data"]["directions"][new_users[i]] = direction
-                data["data"]["colours"][new_users[i]] = colour
+
+                    for (let n = 0; n < nodes.length; n++) {
+                        let row = parseInt(nodes[n]["y"])
+                        let col = parseInt(nodes[n]["x"])
+                        if ("/" + id == new_users[i]) {
+                            setAliveNotClickable(row, col, 'colourNode', colour)
+                        } else {
+                            setAliveNotClickable(row, col, 'otherPlayer2', colour)
+                        }
+                    }
+                    data["data"]["nodes"][new_users[i]] = nodes
+                    data["data"]["growth"][new_users[i]] = growth
+                    data["data"]["directions"][new_users[i]] = direction
+                    data["data"]["colours"][new_users[i]] = colour
+                //}
             }
         }
-        // Kill clients, delete them from the board
         if (Object.keys(response["dead_clients"]).length > 0) {
             let dead_clients = response["dead_clients"]
             for (let i = 0; i < dead_clients.length; i++) {
@@ -196,7 +209,6 @@ socket.onmessage = function(message) {
                 }
             }
         }
-        // Grow players
         if (Object.keys(response["growth"]).length > 0) {
             let growth = response["growth"]
             let growth_keys = Object.keys(growth)
@@ -206,9 +218,9 @@ socket.onmessage = function(message) {
                 data["data"]["growth"][grown_user] += change
             }
         }
-        // Add new fruits to map
         if (Object.keys(response["new_fruits"]).length > 0) {
             let new_fruits = response["new_fruits"]
+
             for (let i = 0; i < new_fruits.length; i++) {
                 let new_fruit = new_fruits[i]
                 let row = new_fruit["y"]
@@ -216,18 +228,18 @@ socket.onmessage = function(message) {
                 setAliveNotClickable(row, col, 'fruitPiece')
             }
         }
-        // Delete eaten fruits from map
         if (Object.keys(response["eaten_fruits"]).length > 0) {
             let eaten_fruits = response["eaten_fruits"]
             for (let i = 0; i < eaten_fruits.length; i++) {
                 let eaten_fruit = eaten_fruits[i]
                 let row = eaten_fruit["y"]
                 let col = eaten_fruit["x"]
+
                 removeNode(row, col)
             }
         }
+        
     }
-    // Move all snakes
     if (response["user_steps"] != null) {
 
         previousIndex = currentIndex
@@ -250,10 +262,12 @@ socket.onmessage = function(message) {
             }
             let row = parseInt(data["data"]["nodes"][keys[i]][0]["y"])
             let col = parseInt(data["data"]["nodes"][keys[i]][0]["x"])
+            
             if ("/" + id == keys[i]) {
                 setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][keys[i]])
+                
             } else {
-                setAliveNotClickable(row, col, 'otherPlayer', data["data"]["colours"][keys[i]])
+                setAliveNotClickable(row, col, 'otherPlayer2', data["data"]["colours"][keys[i]])
             }
         }
     }
@@ -263,37 +277,28 @@ function keyUp(press) {
     let validInput = false
     switch (press.key) {
         case "ArrowUp":
-            direction = "u";
-            validInput = true;
-            break;
+            direction = "u"
+            validInput = true
+            break
         case "ArrowDown":
-            direction = "d";
-            validInput = true;
-            break;
+            direction = "d"
+            validInput = true
+            break
         case "ArrowLeft":
-            direction = "l";
-            validInput = true;
-            break;
+            direction = "l"
+            validInput = true
+            break
         case "ArrowRight":
-            direction = "r";
-            validInput = true;
-            break;
+            direction = "r"
+            validInput = true
+            break
     }
     if (validInput == true && speed_up == true) {
-        slow_down_json = {"type": "decrease_speed"};
-        slow_down_packet = JSON.stringify(slow_down_json);
-        socket.send(slow_down_packet);
-        speed_up = false;
+        slow_down_json = {"type": "decrease_speed"}
+        slow_down_packet = JSON.stringify(slow_down_json)
+        socket.send(slow_down_packet)
+        speed_up = false
     }
-}
-
-function is_tile_in_board(row, col) {
-    if (row > max_rows || col > max_cols || col < 1 || col < 1) {
-        console.log("Tile not in board")
-        return false;
-    }
-    console.log("Tile in board")
-    return true;
 }
 
 function sendInput(press) {
