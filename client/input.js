@@ -89,6 +89,11 @@ function setAliveNotClickable(row, column, tile, colour) {
     gameBoard.appendChild(cell)
 }
 
+function addClass(row, col, colour) {
+    let id = row + "," + column
+    const cell = document.getElementById(id)
+}
+
 
 
 function removeNode(row, column) {
@@ -113,6 +118,7 @@ var y_offset = 0
 socket.onmessage = function(message) {
     console.log(Math.round((new Date()).getTime() / 1000) + " " + message.data)
     response = JSON.parse(message.data)
+    var nodeType;
     
     keys = Object.keys(response)
     if (keys[0] == "data") {
@@ -141,6 +147,18 @@ socket.onmessage = function(message) {
             let keys = Object.keys(response["movements"])
 
             for (let i = 0; i < keys.length; i++) {
+                let nodes = data["data"]["nodes"][keys[i]]
+                console.log(nodes)
+                removeNode(nodes[0]["y"], nodes[0]["x"])
+                //setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'fruitPiece', "0000FF")
+                players = Object.keys(data["data"]["nodes"])
+                console.log("PLAYER IS " + players[i])
+                if ("/" + id == players[i]) {
+                    setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'colourNode', data["data"]["colours"][players[i]])
+                } else {
+                    setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'fruitPiece', data["data"]["colours"][players[i]])
+                }
+                
                 data["data"]["directions"][keys[i]] = response["movements"][keys[i]]     
             }
         }
@@ -262,10 +280,25 @@ socket.onmessage = function(message) {
             }
             let row = parseInt(data["data"]["nodes"][keys[i]][0]["y"])
             let col = parseInt(data["data"]["nodes"][keys[i]][0]["x"])
-            
+            let xDir = data["data"]["directions"][keys[i]]["x"]
+            let yDir = data["data"]["directions"][keys[i]]["y"]
+
             if ("/" + id == keys[i]) {
-                setAliveNotClickable(row, col, 'colourNode', data["data"]["colours"][keys[i]])
-                
+                if (xDir == 0) {
+                    if (yDir == 1) {
+                        nodeType = "bottomColourNode"
+                    } else {
+                        nodeType = "topColourNode"
+                    }
+                } else {
+                    if (yDir == 1) {
+                        nodeType = "rightColourNode"
+                    } else {
+                        nodeType = "leftColourNode"
+                    }
+                }
+                console.log("MOVE " + nodeType)
+                setAliveNotClickable(row, col, nodeType, data["data"]["colours"][keys[i]])
             } else {
                 setAliveNotClickable(row, col, 'otherPlayer2', data["data"]["colours"][keys[i]])
             }

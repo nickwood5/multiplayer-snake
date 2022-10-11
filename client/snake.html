@@ -17,11 +17,11 @@
         }
         :root {
             --numRows: 100;
-            --numCols: 200;
+            --numCols: 150;
         }
         #game-board {
             background-color: rgb(18, 18, 18);
-            width: 200vmin;
+            width: 150vmin;
             height: 100vmin;
             margin-left: auto;
             margin-right: auto;
@@ -36,14 +36,111 @@
         }
 
         .colourNode {
+
             background-color: rgb(222, 247, 0);
-            border: .25vmin solid rgb(222, 247, 0);
             animation: fadeIn 0.05s;
             -moz-animation: fadeIn 0.05s;
             /* Firefox */
             -webkit-animation: fadeIn 0.05s;
             /* Safari and Chrome */
             -o-animation: fadeIn 0.05s;
+            
+        }
+
+        .horizontalColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            border-color: rgb(18, 18, 18);
+            border-width: 1px;
+        
+            border-top-style: solid;
+            border-bottom-style: solid;
+        }
+
+        .leftColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            border-color: rgb(18, 18, 18);
+            border-width: 1px;
+        
+            border-right-style: solid;
+            border-top-style: solid;
+            border-bottom-style: solid;
+        }
+
+        .rightColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            border-color: rgb(18, 18, 18);
+            border-width: 1px;
+        
+            border-left-style: solid;
+            border-top-style: solid;
+            border-bottom-style: solid;
+        }
+
+        .topColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            border-color: rgb(18, 18, 18);
+            border-width: 1px;
+        
+            border-bottom-style: solid;
+            border-left-style: solid;
+            border-right-style: solid;
+        }
+
+        .bottomColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            border-color: rgb(18, 18, 18);
+            border-width: 1px;
+        
+            border-top-style: solid;
+            border-left-style: solid;
+            border-right-style: solid;
+        }
+
+        .verticalColourNode {
+            background-color: rgb(222, 247, 0);
+            animation: fadeIn 0.05s;
+            -moz-animation: fadeIn 0.05s;
+            /* Firefox */
+            -webkit-animation: fadeIn 0.05s;
+            /* Safari and Chrome */
+            -o-animation: fadeIn 0.05s;
+            
+            border-left-style: solid;
+  
+            border-right-style: solid;
+            border-color: rgb(2, 2, 2);
+            border-width: 1px;
+            
         }
 
         .otherPlayer {
@@ -190,7 +287,7 @@
         </span>
     </div>
 
-<body style="background-color:rgb(24, 24, 24)">
+<body style="background-color:rgb(2, 2, 2)">
     <div id="game-board"></div>
 </body>
 
