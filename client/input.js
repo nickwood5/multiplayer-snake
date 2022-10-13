@@ -89,9 +89,10 @@ function setAliveNotClickable(row, column, tile, colour) {
     gameBoard.appendChild(cell)
 }
 
-function addClass(row, col, colour) {
-    let id = row + "," + column
+function addClass(row, col, className) {
+    let id = row + "," + col
     const cell = document.getElementById(id)
+    cell.className = className;
 }
 
 
@@ -149,12 +150,12 @@ socket.onmessage = function(message) {
             for (let i = 0; i < keys.length; i++) {
                 let nodes = data["data"]["nodes"][keys[i]]
                 console.log(nodes)
-                removeNode(nodes[0]["y"], nodes[0]["x"])
+                //removeNode(nodes[0]["y"], nodes[0]["x"])
                 //setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'fruitPiece', "0000FF")
                 players = Object.keys(data["data"]["nodes"])
                 console.log("PLAYER IS " + players[i])
                 if ("/" + id == players[i]) {
-                    setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'colourNode', data["data"]["colours"][players[i]])
+                    setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'topLeftNode', data["data"]["colours"][players[i]])
                 } else {
                     setAliveNotClickable(nodes[0]["y"], nodes[0]["x"], 'fruitPiece', data["data"]["colours"][players[i]])
                 }
@@ -283,21 +284,35 @@ socket.onmessage = function(message) {
             let xDir = data["data"]["directions"][keys[i]]["x"]
             let yDir = data["data"]["directions"][keys[i]]["y"]
 
+            let nodes = data["data"]["nodes"][keys[i]]
+            var secondNode = null;
+
+            if (nodes.length > 1) {
+                secondNode = nodes[1]
+            } 
+            var dirType;
+
             if ("/" + id == keys[i]) {
                 if (xDir == 0) {
+                    dirType = "verticalColourNode"
                     if (yDir == 1) {
                         nodeType = "bottomColourNode"
                     } else {
                         nodeType = "topColourNode"
                     }
                 } else {
-                    if (yDir == 1) {
+                    dirType = "horizontalColourNode"
+                    if (xDir == 1) {
                         nodeType = "rightColourNode"
                     } else {
                         nodeType = "leftColourNode"
                     }
                 }
                 console.log("MOVE " + nodeType)
+                if (secondNode != null) {
+                    addClass(secondNode["y"], secondNode["x"], dirType)
+                }
+
                 setAliveNotClickable(row, col, nodeType, data["data"]["colours"][keys[i]])
             } else {
                 setAliveNotClickable(row, col, 'otherPlayer2', data["data"]["colours"][keys[i]])
