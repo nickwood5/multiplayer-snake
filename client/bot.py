@@ -383,8 +383,6 @@ def new2():
 #asyncio.get_event_loop().run_until_complete(test(id))
 
 
-abormal_termination = False
-
 
 
 
@@ -398,7 +396,7 @@ def create():
     _thread2.start()
     _thread2.join()
 
-
+abormal_termination = False
 
 
 import logging
