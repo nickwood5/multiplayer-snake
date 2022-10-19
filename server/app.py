@@ -363,6 +363,8 @@ async def test():
                 try:
                     await client_sockets[client].send(json.dumps(changes))
                 except:
+                    print("{} disconnected".format(client))
+                    print(connected_users)
                     pass
 
         if dead_clients:
