@@ -261,6 +261,7 @@ def random_direction():
 
 async def test():
     global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
+    alive_disconnected_clients = []
     while (1):
         users_added = 0
         
@@ -363,8 +364,7 @@ async def test():
                 try:
                     await client_sockets[client].send(json.dumps(changes))
                 except:
-                    print("{} disconnected".format(client))
-                    print(connected_users)
+                    alive_disconnected_clients.append(client)
                     pass
 
         if dead_clients:
@@ -373,11 +373,11 @@ async def test():
                 player_nodes.pop(dead_client)
                 movements.pop(dead_client)
                 player_growth.pop(dead_client)
-#
+                if dead_client in alive_disconnected_clients:
+                    connected_users.remove(dead_client)
             dead_clients.clear()
 
         index += 1
-
 
         if step == step_length:
             step = 1
@@ -416,7 +416,7 @@ def new():
 
     loop.run_until_complete(test())
     loop.close()
-
+    
 
 input_thread = threading.Thread(target=between_callback, args=())
 game_thread = threading.Thread(target=new, args=())
