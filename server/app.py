@@ -9,7 +9,6 @@ game_width = 150
 game_height = 100
 
 local_host = False
-index = 0
 
 step_length = 2
 step = 1
@@ -34,18 +33,17 @@ def remove_client(client):
     connected_users.remove(client)
     movements.pop(client)
     moves.pop(client)
-    inactivity.pop(client)
     player_nodes.pop(client)
     player_growth.pop(client)
     client_sockets.pop(client)
 
 movements = {}
 moves = {}
-inactivity = {}
 player_nodes = {}
 player_growth = {}
 player_colours = {}
 player_speeds = {}
+player_names = {}
 
 client_sockets = {}
 
@@ -82,10 +80,9 @@ for a in range (0, 30):
 
 
 async def connection_handler(websocket, client):
-    global connected_users, inactivity, client_sockets, player_nodes, movements, player_growth, fruits, player_colours
+    global connected_users, client_sockets, player_nodes, movements, player_growth, fruits, player_colours, player_names
 
     connected_users.append(client)         
-    inactivity[client] = 0
     client_sockets[client] = websocket
     
     package = {"data": {}}
@@ -94,6 +91,7 @@ async def connection_handler(websocket, client):
     package['data']["growth"] = player_growth
     package['data']['fruits'] = fruits
     package['data']['colours'] = player_colours
+    package['data']['names'] = player_names
 
     await websocket.send(json.dumps(package))
 
@@ -121,12 +119,14 @@ def choose_spawn_position():
     return location
 
 def spawn_handler(message, client):
-    global alive_clients, new_users, player_nodes, player_growth, player_colours, player_speeds, moves, movements
+    global alive_clients, new_users, player_nodes, player_growth, player_colours, player_speeds, moves, movements, player_names
 
     player_colour = message["colour"]
+    player_name = message["name"]
+
+    player_names[client] = player_name
     player_colours[client] = player_colour
     
-
 
     new_users.append(client)
 
@@ -193,7 +193,7 @@ async def send(client, data):
 
 
 def update_moves(client, changes):
-    global moves, movements, inactivity
+    global moves, movements
 
     if moves[client][0] == "u":
         if movements[client]["y"] == 0:
@@ -217,17 +217,15 @@ def update_moves(client, changes):
             changes["movements"][client] = movements[client]
 
     moves[client].pop(0)
-    inactivity[client] = 0
+
 
 def move_snake(client, changes, user_steps):
-    global inactivity, player_growth, player_nodes, movements
+    global player_growth, player_nodes, movements
 
     user_steps.append(client)
 
     if len(moves[client]) > 0:
         update_moves(client, changes)
-    else:
-        inactivity[client] += 1
 
     player_nodes[client].insert(0, {"x": player_nodes[client][0]["x"] + movements[client]["x"], "y": player_nodes[client][0]["y"] + movements[client]["y"]})
 
@@ -260,9 +258,11 @@ def random_direction():
 
 
 async def test():
-    global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
+    global step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, fruits, player_names
     alive_disconnected_clients = []
+    
     while (1):
+        print("STEP: {}, PLAYER NODES: {}, MOVEMENTS: {}, PLAYER GROWTH: {}, PLAYER COLOURS: {}, CONNECTED USERS: {}, ALIVE CLIENTS: {}, NEW USERS: {}, PLAYER SPEEDS: {}, FRUITS: {}, PLAYER NAMES: {}".format(step, len(player_nodes), len(movements), len(player_growth), len(player_colours), len(connected_users), len(alive_clients), len(new_users), len(player_speeds), len(fruits), len(player_names)))
         users_added = 0
         
         start_time = time.time()
@@ -287,6 +287,7 @@ async def test():
                 changes["new_users"][new_user]["direction"] = movements[new_user]
                 changes["new_users"][new_user]["growth"] = player_growth[new_user]
                 changes["new_users"][new_user]["colours"] = player_colours[new_user]
+                changes["new_users"][new_user]["names"] = player_names[new_user]
 
                 users_added += 1
 
@@ -300,9 +301,6 @@ async def test():
                 elif player_speeds[client] == 1:
                     user_steps = move_snake(client, changes, user_steps)
 
-            else:
-                inactivity[client] += 1
-        
         changes["user_steps"] = user_steps
 
         new_users.clear()
@@ -344,7 +342,7 @@ async def test():
                         changes["new_fruits"].append(new_fruit)
                         player_growth[client] += 5
 
-                        if target_client in changes["growth"].keys():
+                        if client in changes["growth"].keys():
                             changes["growth"][client] += 5
                         else:
                             changes["growth"][client] = 5
@@ -358,26 +356,47 @@ async def test():
                 if client in user_steps:
                     user_steps.remove(client)
 
+        dead_disconnects = []
+        
         if changes["movements"] or changes["new_users"] or changes["dead_clients"] or changes["growth"] or changes["user_steps"]:
-            changes["index"] = index
             for client in connected_users:
                 try:
                     await client_sockets[client].send(json.dumps(changes))
                 except:
-                    alive_disconnected_clients.append(client)
-                    pass
+                    if client not in alive_clients:
+                        dead_disconnects.append(client)
+                    else:
+                        alive_disconnected_clients.append(client)
 
         if dead_clients:
             for dead_client in dead_clients:
+
                 alive_clients.remove(dead_client)
-                player_nodes.pop(dead_client)
-                movements.pop(dead_client)
-                player_growth.pop(dead_client)
+                if dead_client in player_nodes:
+                    player_nodes.pop(dead_client)
+                    movements.pop(dead_client)
+                    player_growth.pop(dead_client)
+
+                    player_names.pop(dead_client)
+                    player_colours.pop(dead_client)
+                    player_speeds.pop(dead_client)
+
                 if dead_client in alive_disconnected_clients:
                     connected_users.remove(dead_client)
+                    alive_disconnected_clients.remove(dead_client)
+                    
             dead_clients.clear()
 
-        index += 1
+        if dead_disconnects:
+            for dead_client in dead_disconnects:
+                if dead_client in player_names:
+                    player_names.pop(dead_client)
+                    player_colours.pop(dead_client)
+                    player_speeds.pop(dead_client)
+
+                connected_users.remove(dead_client)
+            
+            dead_disconnects.clear()
 
         if step == step_length:
             step = 1
