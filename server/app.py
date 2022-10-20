@@ -80,7 +80,11 @@ for a in range (0, 30):
 
 
 async def connection_handler(websocket, client):
+<<<<<<< HEAD
     global connected_users, client_sockets, player_nodes, movements, player_growth, fruits, player_colours, player_names
+=======
+    global connected_users, inactivity, client_sockets, player_nodes, movements, player_growth, fruits, player_colours, player_names
+>>>>>>> cb6858cfeeadad6c34f03e341d274c29b58ce439
 
     connected_users.append(client)         
     client_sockets[client] = websocket
@@ -258,7 +262,11 @@ def random_direction():
 
 
 async def test():
+<<<<<<< HEAD
     global step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, fruits, player_names
+=======
+    global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits, player_names
+>>>>>>> cb6858cfeeadad6c34f03e341d274c29b58ce439
     alive_disconnected_clients = []
     
     while (1):
@@ -374,6 +382,7 @@ async def test():
                 alive_clients.remove(dead_client)
                 if dead_client in player_nodes:
                     player_nodes.pop(dead_client)
+<<<<<<< HEAD
                     movements.pop(dead_client)
                     player_growth.pop(dead_client)
 
@@ -385,6 +394,13 @@ async def test():
                     connected_users.remove(dead_client)
                     alive_disconnected_clients.remove(dead_client)
                     
+=======
+                movements.pop(dead_client)
+                player_growth.pop(dead_client)
+                if dead_client in alive_disconnected_clients:
+                    connected_users.remove(dead_client)
+                    alive_disconnected_clients.remove(dead_client)
+>>>>>>> cb6858cfeeadad6c34f03e341d274c29b58ce439
             dead_clients.clear()
 
         if dead_disconnects:
