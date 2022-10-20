@@ -1,13 +1,23 @@
 import asyncio
-from turtle import TurtleScreen
-from numpy import block
 import websockets, json, random
 import requests, time, threading
 
 local_host = False
-max_x = 200
+max_x = 150
 max_y = 100
 
+def choose_direction():
+    dir = random.randint(1, 4)
+    if dir == 1:
+        direction = "u"
+    elif dir == 2:
+        direction = "d"
+    elif dir == 3:
+        direction = "l"
+    elif dir == 4:
+        direction = "r"
+    
+    return direction
 
 if local_host:
     api_url = "http://localhost:5000/get/"
@@ -109,19 +119,26 @@ async def random_direction(websocket, bot_x, bot_y, current_letter_direction, pl
     return {"x": 0, "y": -1}, "u"
 
 
-async def test():
+async def play():
     while 1:
         response = requests.get(api_url)
         result = response.json()
         id = result["id"]
         async with websockets.connect(app_url + str(id)) as websocket:
 
-            print("Start")
+            #print("Start")
             bot_id = "/" + id
             await websocket.send(json.dumps({"type": "connect"}))
-            message = await websocket.recv()
-            message = json.loads(message)
+            try:
+                message = await websocket.recv()
+                message = json.loads(message)
+            except:
+                return
             #print("Connection message is {}".format(message))
+            #print(message)
+
+            if ('data' not in message.keys()):
+                return
             player_nodes = message["data"]["nodes"]
             player_directions = message["data"]["directions"]
             player_growth = {}
@@ -261,7 +278,10 @@ async def test():
 
             living = True
             while living:
-                message = await websocket.recv()
+                try:
+                    message = await websocket.recv()
+                except:
+                    return
                 message = json.loads(message)
                 #print(message)
                 movements = message["movements"]
@@ -336,7 +356,7 @@ async def test():
                 
 
                 if bot_id in dead_users:
-                    print("WE DIED")
+                    #print("WE DIED")
                     living = False
 
 
@@ -344,23 +364,19 @@ async def test():
             #print("Spawn")
             #await new(websocket, current_direction)
 
+async def test():
+    while 1:
+        try:
+            await play()
+        except:
+            pass
+
 async def speed_up(period, websocket):
     websocket.send(json.dumps({"type": "increase_speed"}))
     time.sleep(period)
     websocket.send(json.dumps({"type": "decrease_speed"}))
 
-def choose_direction():
-    dir = random.randint(1, 4)
-    if dir == 1:
-        direction = "u"
-    elif dir == 2:
-        direction = "d"
-    elif dir == 3:
-        direction = "l"
-    elif dir == 4:
-        direction = "r"
-    
-    return direction
+
 
 
 
@@ -419,7 +435,7 @@ if __name__ == "__main__":
         x = threading.Thread(target=thread_function, args=(index,))
         threads.append(x)
         x.start()
-
+#e
     for index, thread in enumerate(threads):
         logging.info("Main    : before joining thread %d.", index)
         thread.join()
