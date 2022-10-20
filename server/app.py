@@ -46,6 +46,7 @@ player_nodes = {}
 player_growth = {}
 player_colours = {}
 player_speeds = {}
+player_names = {}
 
 client_sockets = {}
 
@@ -82,7 +83,7 @@ for a in range (0, 30):
 
 
 async def connection_handler(websocket, client):
-    global connected_users, inactivity, client_sockets, player_nodes, movements, player_growth, fruits, player_colours
+    global connected_users, inactivity, client_sockets, player_nodes, movements, player_growth, fruits, player_colours, player_names
 
     connected_users.append(client)         
     inactivity[client] = 0
@@ -94,6 +95,7 @@ async def connection_handler(websocket, client):
     package['data']["growth"] = player_growth
     package['data']['fruits'] = fruits
     package['data']['colours'] = player_colours
+    package['data']['names'] = player_names
 
     await websocket.send(json.dumps(package))
 
@@ -121,12 +123,14 @@ def choose_spawn_position():
     return location
 
 def spawn_handler(message, client):
-    global alive_clients, new_users, player_nodes, player_growth, player_colours, player_speeds, moves, movements
+    global alive_clients, new_users, player_nodes, player_growth, player_colours, player_speeds, moves, movements, player_names
 
     player_colour = message["colour"]
+    player_name = message["name"]
+
+    player_names[client] = player_name
     player_colours[client] = player_colour
     
-
 
     new_users.append(client)
 
@@ -260,7 +264,7 @@ def random_direction():
 
 
 async def test():
-    global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits
+    global index, step, changes, player_nodes, movements, player_growth, player_colours, pending_clients, connected_users, alive_clients, new_users, player_speeds, inactivity, fruits, player_names
     alive_disconnected_clients = []
     while (1):
         users_added = 0
@@ -287,6 +291,7 @@ async def test():
                 changes["new_users"][new_user]["direction"] = movements[new_user]
                 changes["new_users"][new_user]["growth"] = player_growth[new_user]
                 changes["new_users"][new_user]["colours"] = player_colours[new_user]
+                changes["new_users"][new_user]["names"] = player_names[new_user]
 
                 users_added += 1
 
@@ -344,7 +349,7 @@ async def test():
                         changes["new_fruits"].append(new_fruit)
                         player_growth[client] += 5
 
-                        if target_client in changes["growth"].keys():
+                        if client in changes["growth"].keys():
                             changes["growth"][client] += 5
                         else:
                             changes["growth"][client] = 5
@@ -369,12 +374,15 @@ async def test():
 
         if dead_clients:
             for dead_client in dead_clients:
+
                 alive_clients.remove(dead_client)
-                player_nodes.pop(dead_client)
+                if dead_client in player_nodes:
+                    player_nodes.pop(dead_client)
                 movements.pop(dead_client)
                 player_growth.pop(dead_client)
                 if dead_client in alive_disconnected_clients:
                     connected_users.remove(dead_client)
+                    alive_disconnected_clients.remove(dead_client)
             dead_clients.clear()
 
         index += 1
